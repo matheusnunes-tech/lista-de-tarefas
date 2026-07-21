@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de tarefas</title>
+<style>
+  :root {
+    --bg: #0e1016;
+    --panel: #161925;
+    --panel-2: #1c2030;
+    --border: #2a2f42;
+    --text: #e6e8ef;
+    --text-dim: #8890a6;
+    --accent: #5eead4;
+    --accent-dim: #2d3b3a;
+    --done: #86efac;
+    --done-dim: #223226;
+    --danger: #f87171;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(94,234,212,0.06), transparent 40%),
+      radial-gradient(circle at 80% 100%, rgba(134,239,172,0.05), transparent 40%);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.red { background: #f87171; }
+  .dot.yellow { background: #fbbf24; }
+  .dot.green { background: #86efac; }
+
+  .terminal-title {
+    margin-left: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 0 0 10px 10px;
+    padding: 28px 24px 24px;
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  header h1 .prompt {
+    color: var(--accent);
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-top: 6px;
+    font-family: var(--mono);
+  }
+
+  .add-section {
+    margin-top: 24px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .add-section input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .add-section input::placeholder {
+    color: #4b5165;
+  }
+
+  .add-section input:focus {
+    border-color: var(--accent);
+  }
+
+  .add-section button {
+    background: var(--accent);
+    color: #0e1016;
+    border: none;
+    border-radius: 8px;
+    padding: 0 20px;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .add-section button:hover { opacity: 0.85; }
+  .add-section button:active { transform: scale(0.97); }
+
+  .stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .stats span b { color: var(--text); }
+
+  .list-section {
+    margin-top: 24px;
+  }
+
+  .list-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .list-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  ul.task-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  li.task {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 14px;
+    animation: slideIn 0.25s ease;
+  }
+
+  li.task.done {
+    border-left-color: var(--done);
+    opacity: 0.6;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .checkbox {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    border: 2px solid var(--text-dim);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .checkbox:hover { border-color: var(--accent); }
+
+  li.task.done .checkbox {
+    background: var(--done);
+    border-color: var(--done);
+  }
+
+  .checkbox svg {
+    width: 11px;
+    height: 11px;
+    opacity: 0;
+  }
+
+  li.task.done .checkbox svg { opacity: 1; }
+
+  .task-body { flex: 1; min-width: 0; }
+
+  .task-text {
+    font-size: 14px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  li.task.done .task-text {
+    text-decoration: line-through;
+    color: var(--text-dim);
+  }
+
+  .task-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  li.task.done .task-meta {
+    color: var(--done);
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .delete-btn:hover {
+    color: var(--danger);
+    background: rgba(248,113,113,0.1);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 13px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+
+  .empty-state .arrow {
+    color: var(--accent);
+    margin-right: 6px;
+  }
+
+  @media (max-width: 480px) {
+    .panel { padding: 20px 16px; }
+    header h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="terminal-bar">
+    <div class="dot red"></div>
+    <div class="dot yellow"></div>
+    <div class="dot green"></div>
+    <div class="terminal-title">tasks.sh — bash</div>
+  </div>
+
+  <div class="panel">
+    <header>
+      <h1><span class="prompt">$</span> minhas-tarefas</h1>
+      <p>// adicione, acompanhe e conclua suas tarefas — salvo automaticamente</p>
+    </header>
+
+    <div class="add-section">
+      <input type="text" id="taskInput" placeholder="ex: estudar estrutura de dados" maxlength="120" autofocus>
+      <button id="addBtn">adicionar</button>
+    </div>
+
+    <div class="stats">
+      <span>pendentes: <b id="pendingCount">0</b></span>
+      <span>concluídas: <b id="doneCount">0</b></span>
+    </div>
+
+    <div class="list-section">
+      <div class="list-label">pendentes</div>
+      <ul class="task-list" id="pendingList"></ul>
+      <div class="empty-state" id="emptyPending"><span class="arrow">›</span>nenhuma tarefa pendente. adicione uma acima!</div>
+    </div>
+
+    <div class="list-section" id="doneSection" style="display:none;">
+      <div class="list-label">concluídas</div>
+      <ul class="task-list" id="doneList"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'minhas-tarefas-dados';
+
+  function loadTasks() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return parsed.map(t => ({
+        ...t,
+        createdAt: new Date(t.createdAt),
+        completedAt: t.completedAt ? new Date(t.completedAt) : null
+      }));
+    } catch (e) {
+      console.error('Erro ao carregar tarefas salvas:', e);
+      return [];
+    }
+  }
+
+  function saveTasks() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    } catch (e) {
+      console.error('Erro ao salvar tarefas:', e);
+    }
+  }
+
+  let tasks = loadTasks();
+  let nextId = tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
+
+  const taskInput = document.getElementById('taskInput');
+  const addBtn = document.getElementById('addBtn');
+  const pendingList = document.getElementById('pendingList');
+  const doneList = document.getElementById('doneList');
+  const doneSection = document.getElementById('doneSection');
+  const emptyPending = document.getElementById('emptyPending');
+  const pendingCount = document.getElementById('pendingCount');
+  const doneCount = document.getElementById('doneCount');
+
+  function addTask() {
+    const text = taskInput.value.trim();
+    if (!text) return;
+    tasks.push({
+      id: nextId++,
+      text: text,
+      done: false,
+      createdAt: new Date()
+    });
+    taskInput.value = '';
+    taskInput.focus();
+    saveTasks();
+    render();
+  }
+
+  function toggleTask(id) {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      task.done = !task.done;
+      task.completedAt = task.done ? new Date() : null;
+      saveTasks();
+      render();
+    }
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks();
+    render();
+  }
+
+  function formatTime(date) {
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function createTaskElement(task) {
+    const li = document.createElement('li');
+    li.className = 'task' + (task.done ? ' done' : '');
+
+    const checkbox = document.createElement('div');
+    checkbox.className = 'checkbox';
+    checkbox.innerHTML = '<svg viewBox="0 0 12 12" fill="none"><path d="M2 6L4.5 8.5L10 3" stroke="#0e1016" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    checkbox.onclick = () => toggleTask(task.id);
+
+    const body = document.createElement('div');
+    body.className = 'task-body';
+
+    const textEl = document.createElement('div');
+    textEl.className = 'task-text';
+    textEl.textContent = task.text;
+
+    const meta = document.createElement('div');
+    meta.className = 'task-meta';
+    meta.textContent = task.done
+      ? `✓ concluída às ${formatTime(task.completedAt)}`
+      : `criada às ${formatTime(task.createdAt)}`;
+
+    body.appendChild(textEl);
+    body.appendChild(meta);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'excluir tarefa';
+    delBtn.onclick = () => deleteTask(task.id);
+
+    li.appendChild(checkbox);
+    li.appendChild(body);
+    li.appendChild(delBtn);
+
+    return li;
+  }
+
+  function render() {
+    const pending = tasks.filter(t => !t.done);
+    const done = tasks.filter(t => t.done);
+
+    pendingList.innerHTML = '';
+    doneList.innerHTML = '';
+
+    pending.forEach(t => pendingList.appendChild(createTaskElement(t)));
+    done.forEach(t => doneList.appendChild(createTaskElement(t)));
+
+    emptyPending.style.display = pending.length === 0 ? 'block' : 'none';
+    doneSection.style.display = done.length > 0 ? 'block' : 'none';
+
+    pendingCount.textContent = pending.length;
+    doneCount.textContent = done.length;
+  }
+
+  addBtn.addEventListener('click', addTask);
+  taskInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  render();
+</script>
+
+</body>
+</html>
