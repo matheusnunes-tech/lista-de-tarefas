@@ -2,8 +2,13 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lista de tarefas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>painel — tarefas & dívidas</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <style>
   :root {
     --bg: #0e1016;
@@ -13,10 +18,9 @@
     --text: #e6e8ef;
     --text-dim: #8890a6;
     --accent: #5eead4;
-    --accent-dim: #2d3b3a;
     --done: #86efac;
-    --done-dim: #223226;
     --danger: #f87171;
+    --debt-pending: #fbbf24;
     --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
     --sans: 'Inter', -apple-system, sans-serif;
   }
@@ -33,12 +37,12 @@
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    padding: 48px 20px;
+    padding: 32px 16px;
   }
 
   .app {
     width: 100%;
-    max-width: 620px;
+    max-width: 640px;
   }
 
   .terminal-bar {
@@ -64,39 +68,92 @@
     color: var(--text-dim);
   }
 
+  .sync-status {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+  }
+
+  .sync-status.online .sync-dot { background: var(--done); }
+  .sync-status.offline .sync-dot { background: var(--danger); }
+
   .panel {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 0 0 10px 10px;
-    padding: 28px 24px 24px;
+    padding: 24px 20px 20px;
   }
 
   header h1 {
     font-family: var(--mono);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
     letter-spacing: -0.5px;
   }
 
-  header h1 .prompt {
-    color: var(--accent);
-  }
+  header h1 .prompt { color: var(--accent); }
 
   header p {
     color: var(--text-dim);
-    font-size: 13px;
+    font-size: 12px;
     margin-top: 6px;
     font-family: var(--mono);
   }
 
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 20px;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .tab.active {
+    background: var(--panel-2);
+    color: var(--accent);
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
   .add-section {
-    margin-top: 24px;
+    margin-top: 20px;
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
   }
 
   .add-section input {
     flex: 1;
+    min-width: 120px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -108,25 +165,25 @@
     transition: border-color 0.15s;
   }
 
-  .add-section input::placeholder {
-    color: #4b5165;
+  .add-section input.amount-input {
+    flex: 0 0 120px;
   }
 
-  .add-section input:focus {
-    border-color: var(--accent);
-  }
+  .add-section input::placeholder { color: #4b5165; }
+  .add-section input:focus { border-color: var(--accent); }
 
   .add-section button {
     background: var(--accent);
     color: #0e1016;
     border: none;
     border-radius: 8px;
-    padding: 0 20px;
+    padding: 0 18px;
     font-family: var(--mono);
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.1s;
+    white-space: nowrap;
   }
 
   .add-section button:hover { opacity: 0.85; }
@@ -135,17 +192,17 @@
   .stats {
     display: flex;
     gap: 16px;
-    margin-top: 20px;
+    flex-wrap: wrap;
+    margin-top: 18px;
     font-family: var(--mono);
     font-size: 12px;
     color: var(--text-dim);
   }
 
   .stats span b { color: var(--text); }
+  .stats span.total-owed b { color: var(--debt-pending); }
 
-  .list-section {
-    margin-top: 24px;
-  }
+  .list-section { margin-top: 22px; }
 
   .list-label {
     font-family: var(--mono);
@@ -166,14 +223,14 @@
     background: var(--border);
   }
 
-  ul.task-list {
+  ul.item-list {
     list-style: none;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
 
-  li.task {
+  li.item {
     display: flex;
     align-items: flex-start;
     gap: 12px;
@@ -185,7 +242,8 @@
     animation: slideIn 0.25s ease;
   }
 
-  li.task.done {
+  li.item.debt-pending { border-left-color: var(--debt-pending); }
+  li.item.done, li.item.debt-paid {
     border-left-color: var(--done);
     opacity: 0.6;
   }
@@ -211,42 +269,47 @@
 
   .checkbox:hover { border-color: var(--accent); }
 
-  li.task.done .checkbox {
+  li.item.done .checkbox, li.item.debt-paid .checkbox {
     background: var(--done);
     border-color: var(--done);
   }
 
-  .checkbox svg {
-    width: 11px;
-    height: 11px;
-    opacity: 0;
-  }
+  .checkbox svg { width: 11px; height: 11px; opacity: 0; }
+  li.item.done .checkbox svg, li.item.debt-paid .checkbox svg { opacity: 1; }
 
-  li.task.done .checkbox svg { opacity: 1; }
+  .item-body { flex: 1; min-width: 0; }
 
-  .task-body { flex: 1; min-width: 0; }
-
-  .task-text {
+  .item-text {
     font-size: 14px;
     line-height: 1.4;
     word-break: break-word;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
-  li.task.done .task-text {
+  .item-amount {
+    font-family: var(--mono);
+    font-weight: 700;
+    color: var(--debt-pending);
+  }
+
+  li.item.debt-paid .item-amount { color: var(--done); }
+
+  li.item.done .item-text, li.item.debt-paid .item-text {
     text-decoration: line-through;
     color: var(--text-dim);
   }
 
-  .task-meta {
+  .item-meta {
     font-family: var(--mono);
     font-size: 11px;
     color: var(--text-dim);
     margin-top: 4px;
   }
 
-  li.task.done .task-meta {
-    color: var(--done);
-  }
+  li.item.done .item-meta, li.item.debt-paid .item-meta { color: var(--done); }
 
   .delete-btn {
     background: none;
@@ -254,7 +317,7 @@
     color: var(--text-dim);
     cursor: pointer;
     font-size: 16px;
-    padding: 2px 6px;
+    padding: 4px 8px;
     border-radius: 4px;
     transition: color 0.15s, background 0.15s;
   }
@@ -266,7 +329,7 @@
 
   .empty-state {
     text-align: center;
-    padding: 32px 16px;
+    padding: 28px 16px;
     color: var(--text-dim);
     font-family: var(--mono);
     font-size: 13px;
@@ -274,14 +337,39 @@
     border-radius: 8px;
   }
 
-  .empty-state .arrow {
-    color: var(--accent);
-    margin-right: 6px;
+  .empty-state .arrow { color: var(--accent); margin-right: 6px; }
+
+  .config-warning {
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    background: rgba(248,113,113,0.08);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--danger);
+    line-height: 1.5;
   }
 
-  @media (max-width: 480px) {
-    .panel { padding: 20px 16px; }
-    header h1 { font-size: 18px; }
+  /* ===== Tablet ===== */
+  @media (min-width: 600px) {
+    .panel { padding: 32px 28px 28px; }
+    header h1 { font-size: 24px; }
+    .add-section input.amount-input { flex: 0 0 140px; }
+  }
+
+  /* ===== Desktop ===== */
+  @media (min-width: 900px) {
+    body { padding: 56px 16px; }
+    .app { max-width: 720px; }
+  }
+
+  /* ===== Small phones ===== */
+  @media (max-width: 380px) {
+    .panel { padding: 18px 14px; }
+    header h1 { font-size: 17px; }
+    .add-section input.amount-input { flex: 0 0 90px; font-size: 12px; }
+    .stats { font-size: 11px; }
   }
 </style>
 </head>
@@ -292,70 +380,139 @@
     <div class="dot red"></div>
     <div class="dot yellow"></div>
     <div class="dot green"></div>
-    <div class="terminal-title">tasks.sh — bash</div>
+    <div class="terminal-title">painel.sh — bash</div>
+    <div class="sync-status" id="syncStatus"><span class="sync-dot"></span><span id="syncText">conectando...</span></div>
   </div>
 
   <div class="panel">
     <header>
-      <h1><span class="prompt">$</span> minhas-tarefas</h1>
-      <p>// adicione, acompanhe e conclua suas tarefas — salvo automaticamente</p>
+      <h1><span class="prompt">$</span> meu-painel</h1>
+      <p>// sincronizado na nuvem — acesse de qualquer dispositivo</p>
     </header>
 
-    <div class="add-section">
-      <input type="text" id="taskInput" placeholder="ex: estudar estrutura de dados" maxlength="120" autofocus>
-      <button id="addBtn">adicionar</button>
+    <div id="configWarning" class="config-warning" style="display:none;">
+      ⚠ Firebase não configurado ainda. Veja as instruções no topo do arquivo (procure por "firebaseConfig") e cole a configuração do seu projeto Firebase.
     </div>
 
-    <div class="stats">
-      <span>pendentes: <b id="pendingCount">0</b></span>
-      <span>concluídas: <b id="doneCount">0</b></span>
+    <div class="tabs">
+      <button class="tab active" id="tabTasks" onclick="switchView('tasks')">📋 tarefas</button>
+      <button class="tab" id="tabDebts" onclick="switchView('debts')">💰 dívidas</button>
     </div>
 
-    <div class="list-section">
-      <div class="list-label">pendentes</div>
-      <ul class="task-list" id="pendingList"></ul>
-      <div class="empty-state" id="emptyPending"><span class="arrow">›</span>nenhuma tarefa pendente. adicione uma acima!</div>
+    <!-- ===== TAREFAS ===== -->
+    <div class="view active" id="viewTasks">
+      <div class="add-section">
+        <input type="text" id="taskInput" placeholder="ex: estudar estrutura de dados" maxlength="120">
+        <button id="addTaskBtn">adicionar</button>
+      </div>
+
+      <div class="stats">
+        <span>pendentes: <b id="pendingCount">0</b></span>
+        <span>concluídas: <b id="doneCount">0</b></span>
+      </div>
+
+      <div class="list-section">
+        <div class="list-label">pendentes</div>
+        <ul class="item-list" id="pendingList"></ul>
+        <div class="empty-state" id="emptyPending"><span class="arrow">›</span>nenhuma tarefa pendente. adicione uma acima!</div>
+      </div>
+
+      <div class="list-section" id="doneSection" style="display:none;">
+        <div class="list-label">concluídas</div>
+        <ul class="item-list" id="doneList"></ul>
+      </div>
     </div>
 
-    <div class="list-section" id="doneSection" style="display:none;">
-      <div class="list-label">concluídas</div>
-      <ul class="task-list" id="doneList"></ul>
+    <!-- ===== DÍVIDAS ===== -->
+    <div class="view" id="viewDebts">
+      <div class="add-section">
+        <input type="text" id="debtInput" placeholder="ex: empréstimo do João" maxlength="120">
+        <input type="number" id="debtAmountInput" class="amount-input" placeholder="R$ 0,00" step="0.01" min="0">
+        <button id="addDebtBtn">adicionar</button>
+      </div>
+
+      <div class="stats">
+        <span>a pagar: <b id="pendingDebtCount">0</b></span>
+        <span>pagas: <b id="paidDebtCount">0</b></span>
+        <span class="total-owed">total devendo: <b id="totalOwed">R$ 0,00</b></span>
+      </div>
+
+      <div class="list-section">
+        <div class="list-label">falta pagar</div>
+        <ul class="item-list" id="pendingDebtList"></ul>
+        <div class="empty-state" id="emptyDebtPending"><span class="arrow">›</span>nenhuma dívida pendente. boa!</div>
+      </div>
+
+      <div class="list-section" id="paidDebtSection" style="display:none;">
+        <div class="list-label">pagas</div>
+        <ul class="item-list" id="paidDebtList"></ul>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-  const STORAGE_KEY = 'minhas-tarefas-dados';
+  /* ==========================================================
+     CONFIGURAÇÃO DO FIREBASE
+     ----------------------------------------------------------
+     1. Vá em https://console.firebase.google.com
+     2. Crie um projeto (grátis) e ative o Firestore Database
+        (Build → Firestore Database → Criar banco → modo de teste)
+     3. Registre um "app da Web" (ícone </>) no projeto
+     4. Copie o objeto de configuração gerado e cole abaixo,
+        substituindo os valores de exemplo.
+     ========================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyC7ajgkEIFqtwlyx8Pgpf2gdizci_U43t8",
+    authDomain: "minhas-tarefas-66cd9.firebaseapp.com",
+    projectId: "minhas-tarefas-66cd9",
+    storageBucket: "minhas-tarefas-66cd9.firebasestorage.app",
+    messagingSenderId: "776142922780",
+    appId: "1:776142922780:web:8f782564c7e58095486bd9"
+  };
 
-  function loadTasks() {
+  let db = null;
+  let firebaseReady = false;
+
+  function initFirebase() {
+    if (firebaseConfig.apiKey === "COLE_AQUI") {
+      document.getElementById('configWarning').style.display = 'block';
+      setSyncStatus('offline', 'não configurado');
+      return;
+    }
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return parsed.map(t => ({
-        ...t,
-        createdAt: new Date(t.createdAt),
-        completedAt: t.completedAt ? new Date(t.completedAt) : null
-      }));
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      firebaseReady = true;
+      setSyncStatus('online', 'sincronizado');
+      listenTasks();
+      listenDebts();
     } catch (e) {
-      console.error('Erro ao carregar tarefas salvas:', e);
-      return [];
+      console.error('Erro ao iniciar Firebase:', e);
+      setSyncStatus('offline', 'erro de conexão');
     }
   }
 
-  function saveTasks() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    } catch (e) {
-      console.error('Erro ao salvar tarefas:', e);
-    }
+  function setSyncStatus(state, text) {
+    const el = document.getElementById('syncStatus');
+    el.className = 'sync-status ' + state;
+    document.getElementById('syncText').textContent = text;
   }
 
-  let tasks = loadTasks();
-  let nextId = tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
+  // ===== Navegação entre abas =====
+  function switchView(view) {
+    document.getElementById('tabTasks').classList.toggle('active', view === 'tasks');
+    document.getElementById('tabDebts').classList.toggle('active', view === 'debts');
+    document.getElementById('viewTasks').classList.toggle('active', view === 'tasks');
+    document.getElementById('viewDebts').classList.toggle('active', view === 'debts');
+  }
+
+  // ============================================================
+  // TAREFAS
+  // ============================================================
+  let tasks = [];
 
   const taskInput = document.getElementById('taskInput');
-  const addBtn = document.getElementById('addBtn');
   const pendingList = document.getElementById('pendingList');
   const doneList = document.getElementById('doneList');
   const doneSection = document.getElementById('doneSection');
@@ -363,62 +520,69 @@
   const pendingCount = document.getElementById('pendingCount');
   const doneCount = document.getElementById('doneCount');
 
+  function listenTasks() {
+    db.collection('tasks').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+      tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderTasks();
+    }, err => {
+      console.error('Erro ao ouvir tarefas:', err);
+      setSyncStatus('offline', 'erro de sincronização');
+    });
+  }
+
   function addTask() {
     const text = taskInput.value.trim();
-    if (!text) return;
-    tasks.push({
-      id: nextId++,
+    if (!text || !firebaseReady) return;
+    db.collection('tasks').add({
       text: text,
       done: false,
-      createdAt: new Date()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      completedAt: null
     });
     taskInput.value = '';
     taskInput.focus();
-    saveTasks();
-    render();
   }
 
-  function toggleTask(id) {
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-      task.done = !task.done;
-      task.completedAt = task.done ? new Date() : null;
-      saveTasks();
-      render();
-    }
+  function toggleTask(id, currentDone) {
+    if (!firebaseReady) return;
+    db.collection('tasks').doc(id).update({
+      done: !currentDone,
+      completedAt: !currentDone ? firebase.firestore.FieldValue.serverTimestamp() : null
+    });
   }
 
   function deleteTask(id) {
-    tasks = tasks.filter(t => t.id !== id);
-    saveTasks();
-    render();
+    if (!firebaseReady) return;
+    db.collection('tasks').doc(id).delete();
   }
 
-  function formatTime(date) {
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  function formatTime(ts) {
+    if (!ts) return '';
+    const date = ts.toDate ? ts.toDate() : new Date(ts);
+    return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   }
 
   function createTaskElement(task) {
     const li = document.createElement('li');
-    li.className = 'task' + (task.done ? ' done' : '');
+    li.className = 'item' + (task.done ? ' done' : '');
 
     const checkbox = document.createElement('div');
     checkbox.className = 'checkbox';
     checkbox.innerHTML = '<svg viewBox="0 0 12 12" fill="none"><path d="M2 6L4.5 8.5L10 3" stroke="#0e1016" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    checkbox.onclick = () => toggleTask(task.id);
+    checkbox.onclick = () => toggleTask(task.id, task.done);
 
     const body = document.createElement('div');
-    body.className = 'task-body';
+    body.className = 'item-body';
 
     const textEl = document.createElement('div');
-    textEl.className = 'task-text';
+    textEl.className = 'item-text';
     textEl.textContent = task.text;
 
     const meta = document.createElement('div');
-    meta.className = 'task-meta';
+    meta.className = 'item-meta';
     meta.textContent = task.done
-      ? `✓ concluída às ${formatTime(task.completedAt)}`
-      : `criada às ${formatTime(task.createdAt)}`;
+      ? `✓ concluída em ${formatTime(task.completedAt)}`
+      : `criada em ${formatTime(task.createdAt)}`;
 
     body.appendChild(textEl);
     body.appendChild(meta);
@@ -432,11 +596,10 @@
     li.appendChild(checkbox);
     li.appendChild(body);
     li.appendChild(delBtn);
-
     return li;
   }
 
-  function render() {
+  function renderTasks() {
     const pending = tasks.filter(t => !t.done);
     const done = tasks.filter(t => t.done);
 
@@ -453,12 +616,136 @@
     doneCount.textContent = done.length;
   }
 
-  addBtn.addEventListener('click', addTask);
-  taskInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') addTask();
-  });
+  document.getElementById('addTaskBtn').addEventListener('click', addTask);
+  taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
 
-  render();
+  // ============================================================
+  // DÍVIDAS
+  // ============================================================
+  let debts = [];
+
+  const debtInput = document.getElementById('debtInput');
+  const debtAmountInput = document.getElementById('debtAmountInput');
+  const pendingDebtList = document.getElementById('pendingDebtList');
+  const paidDebtList = document.getElementById('paidDebtList');
+  const paidDebtSection = document.getElementById('paidDebtSection');
+  const emptyDebtPending = document.getElementById('emptyDebtPending');
+  const pendingDebtCount = document.getElementById('pendingDebtCount');
+  const paidDebtCount = document.getElementById('paidDebtCount');
+  const totalOwed = document.getElementById('totalOwed');
+
+  function listenDebts() {
+    db.collection('debts').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+      debts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderDebts();
+    }, err => {
+      console.error('Erro ao ouvir dívidas:', err);
+      setSyncStatus('offline', 'erro de sincronização');
+    });
+  }
+
+  function addDebt() {
+    const text = debtInput.value.trim();
+    const amount = parseFloat(debtAmountInput.value) || 0;
+    if (!text || !firebaseReady) return;
+    db.collection('debts').add({
+      text: text,
+      amount: amount,
+      paid: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      paidAt: null
+    });
+    debtInput.value = '';
+    debtAmountInput.value = '';
+    debtInput.focus();
+  }
+
+  function toggleDebt(id, currentPaid) {
+    if (!firebaseReady) return;
+    db.collection('debts').doc(id).update({
+      paid: !currentPaid,
+      paidAt: !currentPaid ? firebase.firestore.FieldValue.serverTimestamp() : null
+    });
+  }
+
+  function deleteDebt(id) {
+    if (!firebaseReady) return;
+    db.collection('debts').doc(id).delete();
+  }
+
+  function formatMoney(value) {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function createDebtElement(debt) {
+    const li = document.createElement('li');
+    li.className = 'item ' + (debt.paid ? 'debt-paid' : 'debt-pending');
+
+    const checkbox = document.createElement('div');
+    checkbox.className = 'checkbox';
+    checkbox.innerHTML = '<svg viewBox="0 0 12 12" fill="none"><path d="M2 6L4.5 8.5L10 3" stroke="#0e1016" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    checkbox.onclick = () => toggleDebt(debt.id, debt.paid);
+
+    const body = document.createElement('div');
+    body.className = 'item-body';
+
+    const textEl = document.createElement('div');
+    textEl.className = 'item-text';
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = debt.text;
+    const amountSpan = document.createElement('span');
+    amountSpan.className = 'item-amount';
+    amountSpan.textContent = formatMoney(debt.amount || 0);
+    textEl.appendChild(nameSpan);
+    textEl.appendChild(amountSpan);
+
+    const meta = document.createElement('div');
+    meta.className = 'item-meta';
+    meta.textContent = debt.paid
+      ? `✓ paga em ${formatTime(debt.paidAt)}`
+      : `adicionada em ${formatTime(debt.createdAt)}`;
+
+    body.appendChild(textEl);
+    body.appendChild(meta);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'excluir dívida';
+    delBtn.onclick = () => deleteDebt(debt.id);
+
+    li.appendChild(checkbox);
+    li.appendChild(body);
+    li.appendChild(delBtn);
+    return li;
+  }
+
+  function renderDebts() {
+    const pending = debts.filter(d => !d.paid);
+    const paid = debts.filter(d => d.paid);
+
+    pendingDebtList.innerHTML = '';
+    paidDebtList.innerHTML = '';
+
+    pending.forEach(d => pendingDebtList.appendChild(createDebtElement(d)));
+    paid.forEach(d => paidDebtList.appendChild(createDebtElement(d)));
+
+    emptyDebtPending.style.display = pending.length === 0 ? 'block' : 'none';
+    paidDebtSection.style.display = paid.length > 0 ? 'block' : 'none';
+
+    pendingDebtCount.textContent = pending.length;
+    paidDebtCount.textContent = paid.length;
+
+    const sumOwed = pending.reduce((sum, d) => sum + (d.amount || 0), 0);
+    totalOwed.textContent = formatMoney(sumOwed);
+  }
+
+  document.getElementById('addDebtBtn').addEventListener('click', addDebt);
+  debtInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addDebt(); });
+  debtAmountInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addDebt(); });
+
+  // ============================================================
+  initFirebase();
 </script>
 
 </body>
