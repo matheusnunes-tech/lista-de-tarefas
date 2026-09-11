@@ -2,751 +2,755 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>painel — tarefas & dívidas</title>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Matheus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0e1016;
-    --panel: #161925;
-    --panel-2: #1c2030;
-    --border: #2a2f42;
-    --text: #e6e8ef;
-    --text-dim: #8890a6;
-    --accent: #5eead4;
-    --done: #86efac;
-    --danger: #f87171;
-    --debt-pending: #fbbf24;
-    --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-    --sans: 'Inter', -apple-system, sans-serif;
+  :root{
+    --bg: #F3F2FA;
+    --surface: #FFFFFF;
+    --border: #E7E5F2;
+    --text: #201F35;
+    --text-soft: #6E6C8A;
+    --text-faint: #A9A7C2;
+    --shadow: 0 1px 2px rgba(32,31,53,0.04), 0 8px 24px rgba(32,31,53,0.06);
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+
+    --accent-tarefas: #5B5FEF;
+    --accent-tarefas-bg: #ECEDFE;
+    --accent-dividas: #F0900F;
+    --accent-dividas-bg: #FFF3E0;
+    --accent-estudos: #0FA968;
+    --accent-estudos-bg: #E4F9EF;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
     background: var(--bg);
     background-image:
-      radial-gradient(circle at 20% 0%, rgba(94,234,212,0.06), transparent 40%),
-      radial-gradient(circle at 80% 100%, rgba(134,239,172,0.05), transparent 40%);
+      radial-gradient(circle at 12% 8%, rgba(91,95,239,0.08), transparent 40%),
+      radial-gradient(circle at 88% 4%, rgba(15,169,104,0.07), transparent 35%);
     color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    padding: 32px 16px;
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding: 40px 20px 80px;
   }
 
-  .app {
-    width: 100%;
-    max-width: 640px;
+  .app{ width:100%; max-width: 720px; }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 28px;
   }
-
-  .terminal-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-bottom: none;
-    border-radius: 10px 10px 0 0;
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'Sora', sans-serif;
+    font-weight:800;
+    font-size: 22px;
+    letter-spacing: -0.02em;
   }
-
-  .dot { width: 10px; height: 10px; border-radius: 50%; }
-  .dot.red { background: #f87171; }
-  .dot.yellow { background: #fbbf24; }
-  .dot.green { background: #86efac; }
-
-  .terminal-title {
-    margin-left: 8px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-dim);
+  .brand-mark{
+    width:34px; height:34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-tarefas), var(--accent-estudos));
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
   }
-
-  .sync-status {
-    margin-left: auto;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .sync-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--text-dim);
-  }
-
-  .sync-status.online .sync-dot { background: var(--done); }
-  .sync-status.offline .sync-dot { background: var(--danger); }
-
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 0 0 10px 10px;
-    padding: 24px 20px 20px;
-  }
-
-  header h1 {
-    font-family: var(--mono);
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-  }
-
-  header h1 .prompt { color: var(--accent); }
-
-  header p {
-    color: var(--text-dim);
-    font-size: 12px;
-    margin-top: 6px;
-    font-family: var(--mono);
-  }
-
-  .tabs {
-    display: flex;
-    gap: 4px;
-    margin-top: 20px;
-    background: var(--bg);
-    padding: 4px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-  }
-
-  .tab {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    font-family: var(--mono);
+  .brand-mark svg{ width:18px; height:18px; stroke:#fff; }
+  .date{
     font-size: 13px;
-    font-weight: 600;
-    color: var(--text-dim);
-    background: none;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    color: var(--text-soft);
+    text-transform: capitalize;
   }
 
-  .tab.active {
-    background: var(--panel-2);
+  .tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom: 20px;
+  }
+  .tab{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding: 12px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-soft);
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size: 14px;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .tab svg{ width:16px; height:16px; stroke: currentColor; flex-shrink:0; }
+  .tab:hover{ border-color: var(--accent); color: var(--text); }
+  .tab.active{
+    background: var(--accent-bg);
+    border-color: transparent;
     color: var(--accent);
   }
+  .tab[data-tab="tarefas"]{ --accent: var(--accent-tarefas); --accent-bg: var(--accent-tarefas-bg); }
+  .tab[data-tab="dividas"]{ --accent: var(--accent-dividas); --accent-bg: var(--accent-dividas-bg); }
+  .tab[data-tab="estudos"]{ --accent: var(--accent-estudos); --accent-bg: var(--accent-estudos-bg); }
 
-  .view { display: none; }
-  .view.active { display: block; }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+  .panel[data-panel="tarefas"]{ --accent: var(--accent-tarefas); --accent-bg: var(--accent-tarefas-bg); }
+  .panel[data-panel="dividas"]{ --accent: var(--accent-dividas); --accent-bg: var(--accent-dividas-bg); }
+  .panel[data-panel="estudos"]{ --accent: var(--accent-estudos); --accent-bg: var(--accent-estudos-bg); }
 
-  .add-section {
-    margin-top: 20px;
-    display: flex;
-    gap: 8px;
+  .stats{
+    display:flex;
+    gap:10px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
   }
-
-  .add-section input {
-    flex: 1;
+  .stat{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    flex:1;
     min-width: 120px;
-    background: var(--bg);
+    box-shadow: var(--shadow);
+  }
+  .stat .stat-num{
+    font-family:'Sora', sans-serif;
+    font-weight:700;
+    font-size: 20px;
+    color: var(--accent);
+  }
+  .stat .stat-label{
+    font-size: 12px;
+    color: var(--text-soft);
+    margin-top:2px;
+  }
+
+  .addbar{
+    display:flex;
+    gap:8px;
+    margin-bottom: 16px;
+  }
+  .addbar input{
+    flex:1;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 14px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: 13px 14px;
+    font-family:'Inter', sans-serif;
+    font-size: 14px;
     color: var(--text);
-    font-family: var(--mono);
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.15s;
+    outline:none;
+    transition: border-color .15s ease;
+    min-width: 0;
   }
-
-  .add-section input.amount-input {
-    flex: 0 0 120px;
-  }
-
-  .add-section input::placeholder { color: #4b5165; }
-  .add-section input:focus { border-color: var(--accent); }
-
-  .add-section button {
+  .addbar input::placeholder{ color: var(--text-faint); }
+  .addbar input:focus{ border-color: var(--accent); }
+  .addbar input.valor{ flex: 0 0 110px; }
+  .addbar button{
+    border:none;
     background: var(--accent);
-    color: #0e1016;
-    border: none;
-    border-radius: 8px;
-    padding: 0 18px;
-    font-family: var(--mono);
-    font-weight: 700;
+    color:#fff;
+    font-family:'Inter', sans-serif;
+    font-weight:600;
     font-size: 14px;
-    cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
-    white-space: nowrap;
+    padding: 0 20px;
+    border-radius: var(--radius-md);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    transition: filter .15s ease, transform .1s ease;
+    white-space:nowrap;
   }
+  .addbar button:hover{ filter: brightness(1.08); }
+  .addbar button:active{ transform: scale(0.97); }
+  .addbar button svg{ width:15px; height:15px; stroke:#fff; }
 
-  .add-section button:hover { opacity: 0.85; }
-  .add-section button:active { transform: scale(0.97); }
-
-  .stats {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-top: 18px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-dim);
+  .filters{
+    display:flex;
+    gap:6px;
+    margin-bottom: 14px;
   }
-
-  .stats span b { color: var(--text); }
-  .stats span.total-owed b { color: var(--debt-pending); }
-
-  .list-section { margin-top: 22px; }
-
-  .list-label {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .list-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  ul.item-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  li.item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 8px;
-    padding: 12px 14px;
-    animation: slideIn 0.25s ease;
-  }
-
-  li.item.debt-pending { border-left-color: var(--debt-pending); }
-  li.item.done, li.item.debt-paid {
-    border-left-color: var(--done);
-    opacity: 0.6;
-  }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .checkbox {
-    width: 18px;
-    height: 18px;
-    min-width: 18px;
-    border: 2px solid var(--text-dim);
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 2px;
-    transition: border-color 0.15s, background 0.15s;
-  }
-
-  .checkbox:hover { border-color: var(--accent); }
-
-  li.item.done .checkbox, li.item.debt-paid .checkbox {
-    background: var(--done);
-    border-color: var(--done);
-  }
-
-  .checkbox svg { width: 11px; height: 11px; opacity: 0; }
-  li.item.done .checkbox svg, li.item.debt-paid .checkbox svg { opacity: 1; }
-
-  .item-body { flex: 1; min-width: 0; }
-
-  .item-text {
-    font-size: 14px;
-    line-height: 1.4;
-    word-break: break-word;
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .item-amount {
-    font-family: var(--mono);
-    font-weight: 700;
-    color: var(--debt-pending);
-  }
-
-  li.item.debt-paid .item-amount { color: var(--done); }
-
-  li.item.done .item-text, li.item.debt-paid .item-text {
-    text-decoration: line-through;
-    color: var(--text-dim);
-  }
-
-  .item-meta {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 4px;
-  }
-
-  li.item.done .item-meta, li.item.debt-paid .item-meta { color: var(--done); }
-
-  .delete-btn {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-size: 16px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: color 0.15s, background 0.15s;
-  }
-
-  .delete-btn:hover {
-    color: var(--danger);
-    background: rgba(248,113,113,0.1);
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 28px 16px;
-    color: var(--text-dim);
-    font-family: var(--mono);
+  .filter-pill{
+    border:1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-soft);
+    font-family:'Inter', sans-serif;
     font-size: 13px;
+    font-weight:600;
+    padding: 7px 14px;
+    border-radius: 999px;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .filter-pill:hover{ color: var(--text); }
+  .filter-pill.active{
+    background: var(--accent);
+    border-color: var(--accent);
+    color:#fff;
+  }
+
+  .list{ display:flex; flex-direction:column; gap:10px; }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    box-shadow: var(--shadow);
+    animation: rise .18s ease;
+  }
+  @keyframes rise{ from{ opacity:0; transform: translateY(4px);} to{ opacity:1; transform:none;} }
+
+  .check{
+    width:22px; height:22px;
+    border-radius: 7px;
+    border: 2px solid var(--border);
+    flex-shrink:0;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition: all .15s ease;
+    background: transparent;
+  }
+  .check svg{ width:13px; height:13px; stroke:#fff; opacity:0; transition: opacity .1s ease; }
+  .check.done{ background: var(--accent); border-color: var(--accent); }
+  .check.done svg{ opacity:1; }
+
+  .card-body{ flex:1; min-width:0; }
+  .card-title{ font-size: 14.5px; font-weight:500; line-height:1.35; word-break: break-word; }
+  .card-title.done{ color: var(--text-faint); text-decoration: line-through; }
+  .card-meta{ font-size: 11.5px; color: var(--text-faint); margin-top:3px; }
+
+  .card-valor{
+    font-family:'Sora', sans-serif;
+    font-weight:700;
+    font-size: 14.5px;
+    color: var(--accent);
+    white-space:nowrap;
+  }
+  .card-valor.done{ color: var(--text-faint); text-decoration: line-through; }
+
+  .status-badge{
+    border:none;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+    font-family:'Inter', sans-serif;
+    transition: filter .15s ease;
+  }
+  .status-badge:hover{ filter: brightness(0.95); }
+  .status-pendente{ background:#EEEDF6; color:#6E6C8A; }
+  .status-estudando{ background:#FFF3E0; color:#B4680B; }
+  .status-concluido{ background: var(--accent-estudos-bg); color: var(--accent-estudos); }
+
+  .del{
+    width:26px; height:26px;
+    border:none;
+    background:transparent;
+    color: var(--text-faint);
+    cursor:pointer;
+    border-radius: var(--radius-sm);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+    transition: all .15s ease;
+  }
+  .del:hover{ background:#FBEAEA; color:#E14545; }
+  .del svg{ width:15px; height:15px; stroke: currentColor; }
+
+  .empty{
+    text-align:center;
+    color: var(--text-faint);
+    font-size: 13.5px;
+    padding: 30px 10px;
+    background: var(--surface);
     border: 1px dashed var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
+    display:none;
   }
+  .empty.show{ display:block; }
 
-  .empty-state .arrow { color: var(--accent); margin-right: 6px; }
-
-  .config-warning {
-    margin-top: 16px;
-    padding: 14px;
-    border: 1px solid var(--danger);
-    border-radius: 8px;
-    background: rgba(248,113,113,0.08);
-    font-family: var(--mono);
+  .footer-status{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    margin-top: 24px;
     font-size: 12px;
-    color: var(--danger);
-    line-height: 1.5;
+    color: var(--text-faint);
   }
+  .dot{ width:7px; height:7px; border-radius:50%; background:#BDBBD6; }
+  .dot.ok{ background:#0FA968; }
+  .dot.warn{ background:#F0900F; }
 
-  /* ===== Tablet ===== */
-  @media (min-width: 600px) {
-    .panel { padding: 32px 28px 28px; }
-    header h1 { font-size: 24px; }
-    .add-section input.amount-input { flex: 0 0 140px; }
+  .banner{
+    background: #FFF3E0;
+    border: 1px solid #F5D9AE;
+    color: #8A5A0B;
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    line-height:1.5;
+    margin-bottom: 18px;
+    display:none;
   }
+  .banner.show{ display:block; }
+  .banner code{ background: rgba(0,0,0,0.06); padding:1px 5px; border-radius:4px; }
 
-  /* ===== Desktop ===== */
-  @media (min-width: 900px) {
-    body { padding: 56px 16px; }
-    .app { max-width: 720px; }
-  }
-
-  /* ===== Small phones ===== */
-  @media (max-width: 380px) {
-    .panel { padding: 18px 14px; }
-    header h1 { font-size: 17px; }
-    .add-section input.amount-input { flex: 0 0 90px; font-size: 12px; }
-    .stats { font-size: 11px; }
+  @media (max-width: 480px){
+    .brand{ font-size: 19px; }
+    .tab span{ display:none; }
+    .addbar input.valor{ flex-basis: 90px; }
   }
 </style>
 </head>
 <body>
-
 <div class="app">
-  <div class="terminal-bar">
-    <div class="dot red"></div>
-    <div class="dot yellow"></div>
-    <div class="dot green"></div>
-    <div class="terminal-title">painel.sh — bash</div>
-    <div class="sync-status" id="syncStatus"><span class="sync-dot"></span><span id="syncText">conectando...</span></div>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6L20 6"/></svg>
+      </div>
+      Painel do Matheus
+    </div>
+    <div class="date" id="dataAtual"></div>
   </div>
 
-  <div class="panel">
-    <header>
-      <h1><span class="prompt">$</span> meu-painel</h1>
-      <p>// sincronizado na nuvem — acesse de qualquer dispositivo</p>
-    </header>
+  <div class="banner" id="banner">
+    Firebase ainda não configurado — os dados estão sendo salvos só neste navegador (localStorage). Abra o código, procure por <code>firebaseConfig</code> e cole as credenciais do seu projeto para sincronizar na nuvem.
+  </div>
 
-    <div id="configWarning" class="config-warning" style="display:none;">
-      ⚠ Firebase não configurado ainda. Veja as instruções no topo do arquivo (procure por "firebaseConfig") e cole a configuração do seu projeto Firebase.
-    </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="tarefas">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      <span>Tarefas</span>
+    </button>
+    <button class="tab" data-tab="dividas">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/><circle cx="16" cy="14" r="1.5"/></svg>
+      <span>Dívidas</span>
+    </button>
+    <button class="tab" data-tab="estudos">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      <span>Estudos</span>
+    </button>
+  </nav>
 
-    <div class="tabs">
-      <button class="tab active" id="tabTasks" onclick="switchView('tasks')">📋 tarefas</button>
-      <button class="tab" id="tabDebts" onclick="switchView('debts')">💰 dívidas</button>
-    </div>
-
-    <!-- ===== TAREFAS ===== -->
-    <div class="view active" id="viewTasks">
-      <div class="add-section">
-        <input type="text" id="taskInput" placeholder="ex: estudar estrutura de dados" maxlength="120">
-        <button id="addTaskBtn">adicionar</button>
-      </div>
-
+  <main>
+    <!-- TAREFAS -->
+    <section class="panel active" data-panel="tarefas">
       <div class="stats">
-        <span>pendentes: <b id="pendingCount">0</b></span>
-        <span>concluídas: <b id="doneCount">0</b></span>
+        <div class="stat"><div class="stat-num" id="t-pendentes-count">0</div><div class="stat-label">pendentes</div></div>
+        <div class="stat"><div class="stat-num" id="t-concluidas-count">0</div><div class="stat-label">concluídas</div></div>
       </div>
-
-      <div class="list-section">
-        <div class="list-label">pendentes</div>
-        <ul class="item-list" id="pendingList"></ul>
-        <div class="empty-state" id="emptyPending"><span class="arrow">›</span>nenhuma tarefa pendente. adicione uma acima!</div>
+      <div class="addbar">
+        <input type="text" id="t-input" placeholder="ex: estudar estrutura de dados" maxlength="160">
+        <button id="t-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Adicionar
+        </button>
       </div>
-
-      <div class="list-section" id="doneSection" style="display:none;">
-        <div class="list-label">concluídas</div>
-        <ul class="item-list" id="doneList"></ul>
+      <div class="filters">
+        <button class="filter-pill active" data-tab="tarefas" data-filter="pendentes">Pendentes</button>
+        <button class="filter-pill" data-tab="tarefas" data-filter="concluidas">Concluídas</button>
       </div>
-    </div>
+      <div class="list" id="t-list"></div>
+      <p class="empty" id="t-empty">Nada por aqui. Adicione sua primeira tarefa acima.</p>
+    </section>
 
-    <!-- ===== DÍVIDAS ===== -->
-    <div class="view" id="viewDebts">
-      <div class="add-section">
-        <input type="text" id="debtInput" placeholder="ex: empréstimo do João" maxlength="120">
-        <input type="number" id="debtAmountInput" class="amount-input" placeholder="R$ 0,00" step="0.01" min="0">
-        <button id="addDebtBtn">adicionar</button>
-      </div>
-
+    <!-- DIVIDAS -->
+    <section class="panel" data-panel="dividas">
       <div class="stats">
-        <span>a pagar: <b id="pendingDebtCount">0</b></span>
-        <span>pagas: <b id="paidDebtCount">0</b></span>
-        <span class="total-owed">total devendo: <b id="totalOwed">R$ 0,00</b></span>
+        <div class="stat"><div class="stat-num" id="d-pendentes-count">0</div><div class="stat-label">a pagar</div></div>
+        <div class="stat"><div class="stat-num" id="d-pagas-count">0</div><div class="stat-label">pagas</div></div>
+        <div class="stat"><div class="stat-num" id="d-total">R$ 0,00</div><div class="stat-label">total devendo</div></div>
       </div>
+      <div class="addbar">
+        <input type="text" id="d-input" placeholder="ex: empréstimo do João" maxlength="160">
+        <input type="text" id="d-valor" class="valor" placeholder="R$ 0,00" inputmode="decimal">
+        <button id="d-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Adicionar
+        </button>
+      </div>
+      <div class="filters">
+        <button class="filter-pill active" data-tab="dividas" data-filter="pendentes">Falta pagar</button>
+        <button class="filter-pill" data-tab="dividas" data-filter="pagas">Pagas</button>
+      </div>
+      <div class="list" id="d-list"></div>
+      <p class="empty" id="d-empty">Nenhuma dívida por aqui.</p>
+    </section>
 
-      <div class="list-section">
-        <div class="list-label">falta pagar</div>
-        <ul class="item-list" id="pendingDebtList"></ul>
-        <div class="empty-state" id="emptyDebtPending"><span class="arrow">›</span>nenhuma dívida pendente. boa!</div>
+    <!-- ESTUDOS -->
+    <section class="panel" data-panel="estudos">
+      <div class="stats">
+        <div class="stat"><div class="stat-num" id="e-pendente-count">0</div><div class="stat-label">a estudar</div></div>
+        <div class="stat"><div class="stat-num" id="e-estudando-count">0</div><div class="stat-label">estudando</div></div>
+        <div class="stat"><div class="stat-num" id="e-concluido-count">0</div><div class="stat-label">concluído</div></div>
       </div>
+      <div class="addbar">
+        <input type="text" id="e-input" placeholder="ex: lógica de programação" maxlength="160">
+        <button id="e-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Adicionar
+        </button>
+      </div>
+      <div class="filters">
+        <button class="filter-pill active" data-tab="estudos" data-filter="pendente">A estudar</button>
+        <button class="filter-pill" data-tab="estudos" data-filter="estudando">Estudando</button>
+        <button class="filter-pill" data-tab="estudos" data-filter="concluido">Concluído</button>
+      </div>
+      <div class="list" id="e-list"></div>
+      <p class="empty" id="e-empty">Nada por aqui ainda. Adicione o que você quer estudar.</p>
+    </section>
+  </main>
 
-      <div class="list-section" id="paidDebtSection" style="display:none;">
-        <div class="list-label">pagas</div>
-        <ul class="item-list" id="paidDebtList"></ul>
-      </div>
-    </div>
+  <div class="footer-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">iniciando…</span>
   </div>
 </div>
 
-<script>
-  /* ==========================================================
-     CONFIGURAÇÃO DO FIREBASE
-     ----------------------------------------------------------
-     1. Vá em https://console.firebase.google.com
-     2. Crie um projeto (grátis) e ative o Firestore Database
-        (Build → Firestore Database → Criar banco → modo de teste)
-     3. Registre um "app da Web" (ícone </>) no projeto
-     4. Copie o objeto de configuração gerado e cole abaixo,
-        substituindo os valores de exemplo.
-     ========================================================== */
-  const firebaseConfig = {
-    apiKey: "AIzaSyC7ajgkEIFqtwlyx8Pgpf2gdizci_U43t8",
-    authDomain: "minhas-tarefas-66cd9.firebaseapp.com",
-    projectId: "minhas-tarefas-66cd9",
-    storageBucket: "minhas-tarefas-66cd9.firebasestorage.app",
-    messagingSenderId: "776142922780",
-    appId: "1:776142922780:web:8f782564c7e58095486bd9"
-  };
+<script type="module">
+/* =========================================================================
+   CONFIGURAÇÃO DO FIREBASE
+   1. Acesse https://console.firebase.google.com e crie um projeto (grátis).
+   2. No menu lateral, vá em "Firestore Database" -> "Criar banco de dados"
+      -> escolha "Iniciar em modo de teste" (dá para travar as regras depois).
+   3. No ícone de engrenagem -> "Configurações do projeto" -> role até
+      "Seus aplicativos" -> clique no ícone "</>" (Web) -> registre o app.
+   4. Copie o objeto "firebaseConfig" que aparece e cole no lugar do objeto
+      abaixo, substituindo os valores de exemplo.
+   Enquanto isso não for feito, o painel funciona normalmente salvando os
+   dados no localStorage do navegador (não sincroniza entre dispositivos).
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY_AQUI",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJETO",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId: "SEU_APP_ID"
+};
 
-  let db = null;
-  let firebaseReady = false;
+const FIREBASE_READY = firebaseConfig.apiKey !== "SUA_API_KEY_AQUI";
 
-  function initFirebase() {
-    if (firebaseConfig.apiKey === "COLE_AQUI") {
-      document.getElementById('configWarning').style.display = 'block';
-      setSyncStatus('offline', 'não configurado');
-      return;
-    }
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      firebaseReady = true;
-      setSyncStatus('online', 'sincronizado');
-      listenTasks();
-      listenDebts();
-    } catch (e) {
-      console.error('Erro ao iniciar Firebase:', e);
-      setSyncStatus('offline', 'erro de conexão');
-    }
-  }
+let db, fs;
+if (FIREBASE_READY) {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+  fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const app = initializeApp(firebaseConfig);
+  db = fs.getFirestore(app);
+} else {
+  document.getElementById('banner').classList.add('show');
+}
 
-  function setSyncStatus(state, text) {
-    const el = document.getElementById('syncStatus');
-    el.className = 'sync-status ' + state;
-    document.getElementById('syncText').textContent = text;
-  }
+// ---------- estado local ----------
+const state = {
+  tarefas: [],
+  dividas: [],
+  estudos: []
+};
+const filtros = { tarefas: 'pendentes', dividas: 'pendentes', estudos: 'pendente' };
+const listenersReady = { tarefas: false, dividas: false, estudos: false };
 
-  // ===== Navegação entre abas =====
-  function switchView(view) {
-    document.getElementById('tabTasks').classList.toggle('active', view === 'tasks');
-    document.getElementById('tabDebts').classList.toggle('active', view === 'debts');
-    document.getElementById('viewTasks').classList.toggle('active', view === 'tasks');
-    document.getElementById('viewDebts').classList.toggle('active', view === 'debts');
-  }
+// ---------- utilidades ----------
+function formatarData(ts){
+  let d;
+  if (!ts) return '';
+  if (ts.toDate) d = ts.toDate();
+  else d = new Date(ts);
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+function formatarMoeda(n){
+  return (n || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+}
+function parseMoeda(str){
+  const limpo = str.replace(/[^\d,.-]/g,'').replace(/\.(?=\d{3},)/g,'').replace(',', '.');
+  const val = parseFloat(limpo);
+  return isNaN(val) ? 0 : val;
+}
+function uid(){ return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2,8); }
 
-  // ============================================================
-  // TAREFAS
-  // ============================================================
-  let tasks = [];
+document.getElementById('dataAtual').textContent = new Date().toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' });
 
-  const taskInput = document.getElementById('taskInput');
-  const pendingList = document.getElementById('pendingList');
-  const doneList = document.getElementById('doneList');
-  const doneSection = document.getElementById('doneSection');
-  const emptyPending = document.getElementById('emptyPending');
-  const pendingCount = document.getElementById('pendingCount');
-  const doneCount = document.getElementById('doneCount');
+// ---------- persistência ----------
+function localKey(colecao){ return 'painel:' + colecao; }
+function localLoad(colecao){
+  try { return JSON.parse(localStorage.getItem(localKey(colecao))) || []; }
+  catch(e){ return []; }
+}
+function localSave(colecao, arr){
+  localStorage.setItem(localKey(colecao), JSON.stringify(arr));
+}
 
-  function listenTasks() {
-    db.collection('tasks').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-      tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderTasks();
-    }, err => {
-      console.error('Erro ao ouvir tarefas:', err);
-      setSyncStatus('offline', 'erro de sincronização');
+function iniciarColecao(colecao){
+  if (FIREBASE_READY){
+    const q = fs.query(fs.collection(db, colecao), fs.orderBy('criadoEm', 'desc'));
+    fs.onSnapshot(q, (snap) => {
+      state[colecao] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      listenersReady[colecao] = true;
+      atualizarStatus();
+      renderizar(colecao);
+    }, (err) => {
+      console.error(err);
     });
+  } else {
+    state[colecao] = localLoad(colecao).sort((a,b) => (b.criadoEm||0) - (a.criadoEm||0));
+    listenersReady[colecao] = true;
+    atualizarStatus();
+    renderizar(colecao);
   }
+}
 
-  function addTask() {
-    const text = taskInput.value.trim();
-    if (!text || !firebaseReady) return;
-    db.collection('tasks').add({
-      text: text,
-      done: false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      completedAt: null
-    });
-    taskInput.value = '';
-    taskInput.focus();
+async function adicionarItem(colecao, dados){
+  if (FIREBASE_READY){
+    await fs.addDoc(fs.collection(db, colecao), { ...dados, criadoEm: fs.serverTimestamp() });
+  } else {
+    const novo = { id: uid(), ...dados, criadoEm: Date.now() };
+    state[colecao] = [novo, ...state[colecao]];
+    localSave(colecao, state[colecao]);
+    renderizar(colecao);
   }
+}
 
-  function toggleTask(id, currentDone) {
-    if (!firebaseReady) return;
-    db.collection('tasks').doc(id).update({
-      done: !currentDone,
-      completedAt: !currentDone ? firebase.firestore.FieldValue.serverTimestamp() : null
-    });
+async function atualizarItem(colecao, id, campos){
+  if (FIREBASE_READY){
+    await fs.updateDoc(fs.doc(db, colecao, id), campos);
+  } else {
+    state[colecao] = state[colecao].map(it => it.id === id ? { ...it, ...campos } : it);
+    localSave(colecao, state[colecao]);
+    renderizar(colecao);
   }
+}
 
-  function deleteTask(id) {
-    if (!firebaseReady) return;
-    db.collection('tasks').doc(id).delete();
+async function removerItem(colecao, id){
+  if (FIREBASE_READY){
+    await fs.deleteDoc(fs.doc(db, colecao, id));
+  } else {
+    state[colecao] = state[colecao].filter(it => it.id !== id);
+    localSave(colecao, state[colecao]);
+    renderizar(colecao);
   }
+}
 
-  function formatTime(ts) {
-    if (!ts) return '';
-    const date = ts.toDate ? ts.toDate() : new Date(ts);
-    return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+function atualizarStatus(){
+  const todasProntas = Object.values(listenersReady).every(Boolean);
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+  if (!todasProntas) return;
+  if (FIREBASE_READY){
+    dot.className = 'dot ok';
+    txt.textContent = 'sincronizado na nuvem';
+  } else {
+    dot.className = 'dot warn';
+    txt.textContent = 'salvo neste navegador';
   }
+}
 
-  function createTaskElement(task) {
-    const li = document.createElement('li');
-    li.className = 'item' + (task.done ? ' done' : '');
+// ---------- ícone de check ----------
+const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6L20 6"/></svg>';
+const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z"/></svg>';
 
-    const checkbox = document.createElement('div');
-    checkbox.className = 'checkbox';
-    checkbox.innerHTML = '<svg viewBox="0 0 12 12" fill="none"><path d="M2 6L4.5 8.5L10 3" stroke="#0e1016" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    checkbox.onclick = () => toggleTask(task.id, task.done);
+// ---------- render ----------
+function renderizar(colecao){
+  if (colecao === 'tarefas') renderTarefas();
+  if (colecao === 'dividas') renderDividas();
+  if (colecao === 'estudos') renderEstudos();
+}
 
-    const body = document.createElement('div');
-    body.className = 'item-body';
+function renderTarefas(){
+  const itens = state.tarefas;
+  const pendentes = itens.filter(i => !i.concluida);
+  const concluidas = itens.filter(i => i.concluida);
+  document.getElementById('t-pendentes-count').textContent = pendentes.length;
+  document.getElementById('t-concluidas-count').textContent = concluidas.length;
 
-    const textEl = document.createElement('div');
-    textEl.className = 'item-text';
-    textEl.textContent = task.text;
+  const lista = filtros.tarefas === 'pendentes' ? pendentes : concluidas;
+  const el = document.getElementById('t-list');
+  el.innerHTML = '';
+  lista.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <button class="check ${item.concluida ? 'done' : ''}" data-action="toggle" data-id="${item.id}">${CHECK_SVG}</button>
+      <div class="card-body">
+        <div class="card-title ${item.concluida ? 'done' : ''}">${escapeHtml(item.texto)}</div>
+        <div class="card-meta">criada em ${formatarData(item.criadoEm)}</div>
+      </div>
+      <button class="del" data-action="del" data-id="${item.id}">${TRASH_SVG}</button>
+    `;
+    el.appendChild(card);
+  });
+  document.getElementById('t-empty').classList.toggle('show', lista.length === 0);
+}
 
-    const meta = document.createElement('div');
-    meta.className = 'item-meta';
-    meta.textContent = task.done
-      ? `✓ concluída em ${formatTime(task.completedAt)}`
-      : `criada em ${formatTime(task.createdAt)}`;
+function renderDividas(){
+  const itens = state.dividas;
+  const pendentes = itens.filter(i => !i.paga);
+  const pagas = itens.filter(i => i.paga);
+  document.getElementById('d-pendentes-count').textContent = pendentes.length;
+  document.getElementById('d-pagas-count').textContent = pagas.length;
+  document.getElementById('d-total').textContent = formatarMoeda(pendentes.reduce((s,i) => s + (i.valor||0), 0));
 
-    body.appendChild(textEl);
-    body.appendChild(meta);
+  const lista = filtros.dividas === 'pendentes' ? pendentes : pagas;
+  const el = document.getElementById('d-list');
+  el.innerHTML = '';
+  lista.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <button class="check ${item.paga ? 'done' : ''}" data-action="toggle" data-id="${item.id}">${CHECK_SVG}</button>
+      <div class="card-body">
+        <div class="card-title ${item.paga ? 'done' : ''}">${escapeHtml(item.texto)}</div>
+        <div class="card-meta">adicionada em ${formatarData(item.criadoEm)}</div>
+      </div>
+      <div class="card-valor ${item.paga ? 'done' : ''}">${formatarMoeda(item.valor)}</div>
+      <button class="del" data-action="del" data-id="${item.id}">${TRASH_SVG}</button>
+    `;
+    el.appendChild(card);
+  });
+  document.getElementById('d-empty').classList.toggle('show', lista.length === 0);
+}
 
-    const delBtn = document.createElement('button');
-    delBtn.className = 'delete-btn';
-    delBtn.textContent = '✕';
-    delBtn.title = 'excluir tarefa';
-    delBtn.onclick = () => deleteTask(task.id);
+const ESTUDO_LABEL = { pendente: 'A estudar', estudando: 'Estudando', concluido: 'Concluído' };
+const ESTUDO_PROXIMO = { pendente: 'estudando', estudando: 'concluido', concluido: 'pendente' };
 
-    li.appendChild(checkbox);
-    li.appendChild(body);
-    li.appendChild(delBtn);
-    return li;
-  }
+function renderEstudos(){
+  const itens = state.estudos;
+  const porStatus = { pendente: [], estudando: [], concluido: [] };
+  itens.forEach(i => { (porStatus[i.status] || porStatus.pendente).push(i); });
+  document.getElementById('e-pendente-count').textContent = porStatus.pendente.length;
+  document.getElementById('e-estudando-count').textContent = porStatus.estudando.length;
+  document.getElementById('e-concluido-count').textContent = porStatus.concluido.length;
 
-  function renderTasks() {
-    const pending = tasks.filter(t => !t.done);
-    const done = tasks.filter(t => t.done);
+  const lista = porStatus[filtros.estudos] || [];
+  const el = document.getElementById('e-list');
+  el.innerHTML = '';
+  lista.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <button class="status-badge status-${item.status}" data-action="ciclo" data-id="${item.id}">${ESTUDO_LABEL[item.status]}</button>
+      <div class="card-body">
+        <div class="card-title">${escapeHtml(item.texto)}</div>
+        <div class="card-meta">criado em ${formatarData(item.criadoEm)}</div>
+      </div>
+      <button class="del" data-action="del" data-id="${item.id}">${TRASH_SVG}</button>
+    `;
+    el.appendChild(card);
+  });
+  document.getElementById('e-empty').classList.toggle('show', lista.length === 0);
+}
 
-    pendingList.innerHTML = '';
-    doneList.innerHTML = '';
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
-    pending.forEach(t => pendingList.appendChild(createTaskElement(t)));
-    done.forEach(t => doneList.appendChild(createTaskElement(t)));
+// ---------- eventos: tabs ----------
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelector(`.panel[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+  });
+});
 
-    emptyPending.style.display = pending.length === 0 ? 'block' : 'none';
-    doneSection.style.display = done.length > 0 ? 'block' : 'none';
+// ---------- eventos: filtros ----------
+document.querySelectorAll('.filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    filtros[tab] = btn.dataset.filter;
+    document.querySelectorAll(`.filter-pill[data-tab="${tab}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderizar(tab);
+  });
+});
 
-    pendingCount.textContent = pending.length;
-    doneCount.textContent = done.length;
-  }
+// ---------- eventos: adicionar ----------
+document.getElementById('t-add').addEventListener('click', () => {
+  const input = document.getElementById('t-input');
+  const texto = input.value.trim();
+  if (!texto) return;
+  adicionarItem('tarefas', { texto, concluida: false });
+  input.value = '';
+  input.focus();
+});
+document.getElementById('t-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('t-add').click(); });
 
-  document.getElementById('addTaskBtn').addEventListener('click', addTask);
-  taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
+document.getElementById('d-add').addEventListener('click', () => {
+  const input = document.getElementById('d-input');
+  const valorInput = document.getElementById('d-valor');
+  const texto = input.value.trim();
+  if (!texto) return;
+  const valor = parseMoeda(valorInput.value || '0');
+  adicionarItem('dividas', { texto, valor, paga: false });
+  input.value = ''; valorInput.value = '';
+  input.focus();
+});
+document.getElementById('d-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('d-add').click(); });
+document.getElementById('d-valor').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('d-add').click(); });
 
-  // ============================================================
-  // DÍVIDAS
-  // ============================================================
-  let debts = [];
+document.getElementById('e-add').addEventListener('click', () => {
+  const input = document.getElementById('e-input');
+  const texto = input.value.trim();
+  if (!texto) return;
+  adicionarItem('estudos', { texto, status: 'pendente' });
+  input.value = '';
+  input.focus();
+});
+document.getElementById('e-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('e-add').click(); });
 
-  const debtInput = document.getElementById('debtInput');
-  const debtAmountInput = document.getElementById('debtAmountInput');
-  const pendingDebtList = document.getElementById('pendingDebtList');
-  const paidDebtList = document.getElementById('paidDebtList');
-  const paidDebtSection = document.getElementById('paidDebtSection');
-  const emptyDebtPending = document.getElementById('emptyDebtPending');
-  const pendingDebtCount = document.getElementById('pendingDebtCount');
-  const paidDebtCount = document.getElementById('paidDebtCount');
-  const totalOwed = document.getElementById('totalOwed');
+// ---------- eventos: cards (delegação) ----------
+document.getElementById('t-list').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  const id = btn.dataset.id;
+  const item = state.tarefas.find(i => i.id === id);
+  if (btn.dataset.action === 'toggle') atualizarItem('tarefas', id, { concluida: !item.concluida });
+  if (btn.dataset.action === 'del') removerItem('tarefas', id);
+});
+document.getElementById('d-list').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  const id = btn.dataset.id;
+  const item = state.dividas.find(i => i.id === id);
+  if (btn.dataset.action === 'toggle') atualizarItem('dividas', id, { paga: !item.paga });
+  if (btn.dataset.action === 'del') removerItem('dividas', id);
+});
+document.getElementById('e-list').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  const id = btn.dataset.id;
+  const item = state.estudos.find(i => i.id === id);
+  if (btn.dataset.action === 'ciclo') atualizarItem('estudos', id, { status: ESTUDO_PROXIMO[item.status] });
+  if (btn.dataset.action === 'del') removerItem('estudos', id);
+});
 
-  function listenDebts() {
-    db.collection('debts').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-      debts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderDebts();
-    }, err => {
-      console.error('Erro ao ouvir dívidas:', err);
-      setSyncStatus('offline', 'erro de sincronização');
-    });
-  }
-
-  function addDebt() {
-    const text = debtInput.value.trim();
-    const amount = parseFloat(debtAmountInput.value) || 0;
-    if (!text || !firebaseReady) return;
-    db.collection('debts').add({
-      text: text,
-      amount: amount,
-      paid: false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      paidAt: null
-    });
-    debtInput.value = '';
-    debtAmountInput.value = '';
-    debtInput.focus();
-  }
-
-  function toggleDebt(id, currentPaid) {
-    if (!firebaseReady) return;
-    db.collection('debts').doc(id).update({
-      paid: !currentPaid,
-      paidAt: !currentPaid ? firebase.firestore.FieldValue.serverTimestamp() : null
-    });
-  }
-
-  function deleteDebt(id) {
-    if (!firebaseReady) return;
-    db.collection('debts').doc(id).delete();
-  }
-
-  function formatMoney(value) {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-
-  function createDebtElement(debt) {
-    const li = document.createElement('li');
-    li.className = 'item ' + (debt.paid ? 'debt-paid' : 'debt-pending');
-
-    const checkbox = document.createElement('div');
-    checkbox.className = 'checkbox';
-    checkbox.innerHTML = '<svg viewBox="0 0 12 12" fill="none"><path d="M2 6L4.5 8.5L10 3" stroke="#0e1016" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    checkbox.onclick = () => toggleDebt(debt.id, debt.paid);
-
-    const body = document.createElement('div');
-    body.className = 'item-body';
-
-    const textEl = document.createElement('div');
-    textEl.className = 'item-text';
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = debt.text;
-    const amountSpan = document.createElement('span');
-    amountSpan.className = 'item-amount';
-    amountSpan.textContent = formatMoney(debt.amount || 0);
-    textEl.appendChild(nameSpan);
-    textEl.appendChild(amountSpan);
-
-    const meta = document.createElement('div');
-    meta.className = 'item-meta';
-    meta.textContent = debt.paid
-      ? `✓ paga em ${formatTime(debt.paidAt)}`
-      : `adicionada em ${formatTime(debt.createdAt)}`;
-
-    body.appendChild(textEl);
-    body.appendChild(meta);
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'delete-btn';
-    delBtn.textContent = '✕';
-    delBtn.title = 'excluir dívida';
-    delBtn.onclick = () => deleteDebt(debt.id);
-
-    li.appendChild(checkbox);
-    li.appendChild(body);
-    li.appendChild(delBtn);
-    return li;
-  }
-
-  function renderDebts() {
-    const pending = debts.filter(d => !d.paid);
-    const paid = debts.filter(d => d.paid);
-
-    pendingDebtList.innerHTML = '';
-    paidDebtList.innerHTML = '';
-
-    pending.forEach(d => pendingDebtList.appendChild(createDebtElement(d)));
-    paid.forEach(d => paidDebtList.appendChild(createDebtElement(d)));
-
-    emptyDebtPending.style.display = pending.length === 0 ? 'block' : 'none';
-    paidDebtSection.style.display = paid.length > 0 ? 'block' : 'none';
-
-    pendingDebtCount.textContent = pending.length;
-    paidDebtCount.textContent = paid.length;
-
-    const sumOwed = pending.reduce((sum, d) => sum + (d.amount || 0), 0);
-    totalOwed.textContent = formatMoney(sumOwed);
-  }
-
-  document.getElementById('addDebtBtn').addEventListener('click', addDebt);
-  debtInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addDebt(); });
-  debtAmountInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addDebt(); });
-
-  // ============================================================
-  initFirebase();
+// ---------- start ----------
+iniciarColecao('tarefas');
+iniciarColecao('dividas');
+iniciarColecao('estudos');
 </script>
-
 </body>
 </html>
