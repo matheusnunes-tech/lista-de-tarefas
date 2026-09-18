@@ -6,41 +6,91 @@
 <title>Painel do Matheus</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #F3F2FA;
+    --bg: #F6F4FF;
     --surface: #FFFFFF;
-    --border: #E7E5F2;
-    --text: #201F35;
-    --text-soft: #6E6C8A;
-    --text-faint: #A9A7C2;
-    --shadow: 0 1px 2px rgba(32,31,53,0.04), 0 8px 24px rgba(32,31,53,0.06);
-    --radius-lg: 18px;
-    --radius-md: 12px;
-    --radius-sm: 8px;
+    --border: #E9E4FA;
+    --text: #1E1B3A;
+    --text-soft: #6B6690;
+    --text-faint: #A9A4C9;
+    --shadow: 0 1px 2px rgba(32,31,53,0.05), 0 10px 26px rgba(72,55,180,0.09);
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 9px;
 
-    --accent-tarefas: #5B5FEF;
-    --accent-tarefas-bg: #ECEDFE;
-    --accent-dividas: #F0900F;
-    --accent-dividas-bg: #FFF3E0;
-    --accent-estudos: #0FA968;
-    --accent-estudos-bg: #E4F9EF;
+    --accent-tarefas: #6C5CE7;
+    --accent-tarefas-bg: #ECE9FE;
+    --accent-dividas: #FF9F1C;
+    --accent-dividas-bg: #FFF1DA;
+    --accent-estudos: #00B87C;
+    --accent-estudos-bg: #DEFAEE;
+
+    --accent-economias: #E0439B;
+    --accent-economias-bg: #FCE6F2;
+
+    --accent-fun: #FF5D8F;
+    --accent-fun-2: #34C3FF;
+
+    --accent-saldo: #2F86EB;
+    --accent-saldo-bg: #E4F0FE;
+  }
+
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --bg: #171331;
+      --surface: #211C43;
+      --border: #362E5E;
+      --text: #F2F0FC;
+      --text-soft: #B5AEDA;
+      --text-faint: #7C74A8;
+      --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 10px 26px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #171331;
+    --surface: #211C43;
+    --border: #362E5E;
+    --text: #F2F0FC;
+    --text-soft: #B5AEDA;
+    --text-faint: #7C74A8;
+    --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 10px 26px rgba(0,0,0,0.35);
   }
 
   *{ box-sizing:border-box; }
   html,body{ margin:0; padding:0; }
   body{
     background: var(--bg);
-    background-image:
-      radial-gradient(circle at 12% 8%, rgba(91,95,239,0.08), transparent 40%),
-      radial-gradient(circle at 88% 4%, rgba(15,169,104,0.07), transparent 35%);
     color: var(--text);
     font-family: 'Inter', system-ui, sans-serif;
     min-height:100vh;
     display:flex;
     justify-content:center;
     padding: 40px 20px 80px;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  .blob{
+    position:fixed;
+    border-radius:50%;
+    filter: blur(60px);
+    opacity:0.35;
+    z-index:-1;
+    pointer-events:none;
+    animation: drift 22s ease-in-out infinite;
+  }
+  .blob-1{ width:340px; height:340px; top:-120px; left:-100px; background: var(--accent-tarefas); animation-delay:0s; }
+  .blob-2{ width:280px; height:280px; top:40%; right:-120px; background: var(--accent-fun); animation-delay:-7s; }
+  .blob-3{ width:300px; height:300px; bottom:-140px; left:20%; background: var(--accent-estudos); animation-delay:-14s; }
+  @keyframes drift{
+    0%, 100%{ transform: translate(0,0) scale(1); }
+    33%{ transform: translate(30px,-20px) scale(1.08); }
+    66%{ transform: translate(-20px,25px) scale(0.94); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .blob{ animation: none; }
   }
 
   .app{ width:100%; max-width: 720px; }
@@ -55,19 +105,25 @@
     display:flex;
     align-items:center;
     gap:10px;
-    font-family:'Sora', sans-serif;
+    font-family:'Baloo 2', sans-serif;
     font-weight:800;
-    font-size: 22px;
-    letter-spacing: -0.02em;
+    font-size: 23px;
+    letter-spacing: -0.01em;
   }
   .brand-mark{
-    width:34px; height:34px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent-tarefas), var(--accent-estudos));
+    width:36px; height:36px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent-tarefas), var(--accent-fun));
     display:flex; align-items:center; justify-content:center;
     flex-shrink:0;
+    animation: pop-in .5s cubic-bezier(.34,1.56,.64,1);
   }
-  .brand-mark svg{ width:18px; height:18px; stroke:#fff; }
+  .brand-mark svg{ width:19px; height:19px; stroke:#fff; }
+  @keyframes pop-in{
+    0%{ transform: scale(0) rotate(-15deg); }
+    70%{ transform: scale(1.15) rotate(5deg); }
+    100%{ transform: scale(1) rotate(0deg); }
+  }
   .date{
     font-size: 13px;
     color: var(--text-soft);
@@ -76,42 +132,64 @@
 
   .tabs{
     display:flex;
-    gap:8px;
+    gap:2px;
     margin-bottom: 20px;
+    position:relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    box-shadow: var(--shadow);
   }
+  .tab-indicator{
+    position:absolute;
+    top:4px; bottom:4px; left:4px;
+    width: 0;
+    border-radius: calc(var(--radius-md) - 4px);
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1), width .4s cubic-bezier(.34,1.56,.64,1), background .25s ease;
+    z-index:0;
+  }
+  .tab-indicator.ind-tarefas{ background: var(--accent-tarefas-bg); }
+  .tab-indicator.ind-dividas{ background: var(--accent-dividas-bg); }
+  .tab-indicator.ind-estudos{ background: var(--accent-estudos-bg); }
+  .tab-indicator.ind-economias{ background: var(--accent-economias-bg); }
   .tab{
     flex:1;
     display:flex;
     align-items:center;
     justify-content:center;
     gap:8px;
-    padding: 12px 10px;
+    padding: 11px 10px;
     border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-    background: var(--surface);
+    border: none;
+    background: transparent;
     color: var(--text-soft);
     font-family:'Inter', sans-serif;
     font-weight:600;
     font-size: 14px;
     cursor:pointer;
-    transition: all .15s ease;
+    transition: color .2s ease, transform .12s ease;
+    position:relative;
+    z-index:1;
   }
-  .tab svg{ width:16px; height:16px; stroke: currentColor; flex-shrink:0; }
-  .tab:hover{ border-color: var(--accent); color: var(--text); }
+  .tab svg{ width:16px; height:16px; stroke: currentColor; flex-shrink:0; transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .tab:hover{ color: var(--text); }
+  .tab:active{ transform: scale(0.96); }
   .tab.active{
-    background: var(--accent-bg);
-    border-color: transparent;
     color: var(--accent);
   }
+  .tab.active svg{ transform: scale(1.12) rotate(-4deg); }
   .tab[data-tab="tarefas"]{ --accent: var(--accent-tarefas); --accent-bg: var(--accent-tarefas-bg); }
   .tab[data-tab="dividas"]{ --accent: var(--accent-dividas); --accent-bg: var(--accent-dividas-bg); }
   .tab[data-tab="estudos"]{ --accent: var(--accent-estudos); --accent-bg: var(--accent-estudos-bg); }
+  .tab[data-tab="economias"]{ --accent: var(--accent-economias); --accent-bg: var(--accent-economias-bg); }
 
   .panel{ display:none; }
   .panel.active{ display:block; }
   .panel[data-panel="tarefas"]{ --accent: var(--accent-tarefas); --accent-bg: var(--accent-tarefas-bg); }
   .panel[data-panel="dividas"]{ --accent: var(--accent-dividas); --accent-bg: var(--accent-dividas-bg); }
   .panel[data-panel="estudos"]{ --accent: var(--accent-estudos); --accent-bg: var(--accent-estudos-bg); }
+  .panel[data-panel="economias"]{ --accent: var(--accent-economias); --accent-bg: var(--accent-economias-bg); }
 
   .stats{
     display:flex;
@@ -127,18 +205,93 @@
     flex:1;
     min-width: 120px;
     box-shadow: var(--shadow);
+    transition: transform .18s ease;
   }
+  .stat:hover{ transform: translateY(-2px); }
   .stat .stat-num{
-    font-family:'Sora', sans-serif;
+    font-family:'Baloo 2', sans-serif;
     font-weight:700;
-    font-size: 20px;
+    font-size: 21px;
     color: var(--accent);
+    display:inline-block;
+  }
+  .stat .stat-num.bump{ animation: bump .38s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes bump{
+    0%{ transform: scale(1); }
+    45%{ transform: scale(1.28); }
+    100%{ transform: scale(1); }
   }
   .stat .stat-label{
     font-size: 12px;
     color: var(--text-soft);
     margin-top:2px;
   }
+
+  .saldo-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .saldo-info{ display:flex; flex-direction:column; gap:3px; }
+  .saldo-label{
+    font-size:12px;
+    color:var(--text-soft);
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .saldo-valor{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size: 22px;
+    color: var(--accent-saldo);
+  }
+  .saldo-diff{
+    font-size:12px;
+    font-weight:600;
+    min-height: 15px;
+  }
+  .saldo-diff.pos{ color: var(--accent-estudos); }
+  .saldo-diff.neg{ color: #E14545; }
+  .saldo-edit{ display:flex; gap:8px; }
+  .saldo-edit input{
+    width: 130px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family:'Inter', sans-serif;
+    font-size: 13.5px;
+    color: var(--text);
+    outline:none;
+    transition: border-color .15s ease;
+  }
+  .saldo-edit input::placeholder{ color: var(--text-faint); }
+  .saldo-edit input:focus{ border-color: var(--accent-saldo); }
+  .saldo-edit button{
+    border:none;
+    background: var(--accent-saldo);
+    color:#fff;
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size: 13.5px;
+    padding: 0 16px;
+    border-radius: var(--radius-sm);
+    cursor:pointer;
+    transition: filter .15s ease, transform .1s ease;
+    white-space:nowrap;
+  }
+  .saldo-edit button:hover{ filter: brightness(1.08); }
+  .saldo-edit button:active{ transform: scale(0.97); }
 
   .addbar{
     display:flex;
@@ -177,8 +330,8 @@
     transition: filter .15s ease, transform .1s ease;
     white-space:nowrap;
   }
-  .addbar button:hover{ filter: brightness(1.08); }
-  .addbar button:active{ transform: scale(0.97); }
+  .addbar button:hover{ filter: brightness(1.08); transform: translateY(-1px); }
+  .addbar button:active{ transform: scale(0.96); }
   .addbar button svg{ width:15px; height:15px; stroke:#fff; }
 
   .filters{
@@ -199,10 +352,12 @@
     transition: all .15s ease;
   }
   .filter-pill:hover{ color: var(--text); }
+  .filter-pill:active{ transform: scale(0.94); }
   .filter-pill.active{
     background: var(--accent);
     border-color: var(--accent);
     color:#fff;
+    transform: scale(1.02);
   }
 
   .list{ display:flex; flex-direction:column; gap:10px; }
@@ -216,22 +371,26 @@
     align-items:center;
     gap:12px;
     box-shadow: var(--shadow);
-    animation: rise .18s ease;
+    animation: rise .22s cubic-bezier(.34,1.56,.64,1);
+    transition: transform .15s ease, box-shadow .15s ease;
   }
-  @keyframes rise{ from{ opacity:0; transform: translateY(4px);} to{ opacity:1; transform:none;} }
+  .card:hover{ transform: translateY(-2px); box-shadow: 0 4px 6px rgba(32,31,53,0.06), 0 14px 30px rgba(72,55,180,0.12); }
+  @keyframes rise{ from{ opacity:0; transform: translateY(8px) scale(0.98);} to{ opacity:1; transform:none;} }
 
   .check{
-    width:22px; height:22px;
-    border-radius: 7px;
+    width:23px; height:23px;
+    border-radius: 8px;
     border: 2px solid var(--border);
     flex-shrink:0;
     cursor:pointer;
     display:flex; align-items:center; justify-content:center;
-    transition: all .15s ease;
+    transition: all .18s cubic-bezier(.34,1.56,.64,1);
     background: transparent;
   }
+  .check:hover{ border-color: var(--accent); }
+  .check:active{ transform: scale(0.85); }
   .check svg{ width:13px; height:13px; stroke:#fff; opacity:0; transition: opacity .1s ease; }
-  .check.done{ background: var(--accent); border-color: var(--accent); }
+  .check.done{ background: var(--accent); border-color: var(--accent); transform: scale(1.08); }
   .check.done svg{ opacity:1; }
 
   .card-body{ flex:1; min-width:0; }
@@ -240,7 +399,7 @@
   .card-meta{ font-size: 11.5px; color: var(--text-faint); margin-top:3px; }
 
   .card-valor{
-    font-family:'Sora', sans-serif;
+    font-family:'Baloo 2', sans-serif;
     font-weight:700;
     font-size: 14.5px;
     color: var(--accent);
@@ -257,11 +416,12 @@
     cursor:pointer;
     white-space:nowrap;
     font-family:'Inter', sans-serif;
-    transition: filter .15s ease;
+    transition: filter .15s ease, transform .15s cubic-bezier(.34,1.56,.64,1);
   }
   .status-badge:hover{ filter: brightness(0.95); }
+  .status-badge:active{ transform: scale(0.92); }
   .status-pendente{ background:#EEEDF6; color:#6E6C8A; }
-  .status-estudando{ background:#FFF3E0; color:#B4680B; }
+  .status-estudando{ background:#FFF1DA; color:#B4680B; }
   .status-concluido{ background: var(--accent-estudos-bg); color: var(--accent-estudos); }
 
   .del{
@@ -275,8 +435,72 @@
     flex-shrink:0;
     transition: all .15s ease;
   }
-  .del:hover{ background:#FBEAEA; color:#E14545; }
+  .del:hover{ background:#FBEAEA; color:#E14545; transform: rotate(-6deg); }
+  .del:active{ transform: scale(0.88) rotate(-6deg); }
   .del svg{ width:15px; height:15px; stroke: currentColor; }
+
+  .confete{
+    position:fixed;
+    width:7px; height:7px;
+    border-radius:2px;
+    pointer-events:none;
+    z-index:999;
+    animation: confete-fly .65s ease-out forwards;
+  }
+  @keyframes confete-fly{
+    0%{ transform: translate(0,0) rotate(0deg) scale(1); opacity:1; }
+    100%{ transform: translate(var(--dx), var(--dy)) rotate(360deg) scale(0.4); opacity:0; }
+  }
+
+  .progress-track{
+    width:100%;
+    height:7px;
+    background: var(--bg);
+    border-radius: 999px;
+    overflow:hidden;
+    margin: 7px 0 5px;
+  }
+  .progress-fill{
+    height:100%;
+    background: linear-gradient(90deg, var(--accent-economias), var(--accent-fun));
+    border-radius: 999px;
+    transition: width .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  .progress-fill.completa{ background: linear-gradient(90deg, var(--accent-estudos), #34D8A0); }
+
+  .economia-add{
+    display:flex;
+    gap:6px;
+    flex-shrink:0;
+  }
+  .economia-add input{
+    width: 86px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 9px 10px;
+    font-family:'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    outline:none;
+    transition: border-color .15s ease;
+  }
+  .economia-add input::placeholder{ color: var(--text-faint); }
+  .economia-add input:focus{ border-color: var(--accent-economias); }
+  .economia-add button{
+    border:none;
+    background: var(--accent-economias);
+    color:#fff;
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size: 15px;
+    width: 34px;
+    border-radius: var(--radius-sm);
+    cursor:pointer;
+    transition: filter .15s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
+  }
+  .economia-add button:hover{ filter: brightness(1.08); }
+  .economia-add button:active{ transform: scale(0.9); }
 
   .empty{
     text-align:center;
@@ -325,6 +549,9 @@
 </style>
 </head>
 <body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
 <div class="app">
 
   <div class="topbar">
@@ -341,7 +568,8 @@
     Firebase ainda não configurado — os dados estão sendo salvos só neste navegador (localStorage). Abra o código, procure por <code>firebaseConfig</code> e cole as credenciais do seu projeto para sincronizar na nuvem.
   </div>
 
-  <nav class="tabs">
+  <nav class="tabs" id="tabsNav">
+    <div class="tab-indicator ind-tarefas" id="tabIndicator"></div>
     <button class="tab active" data-tab="tarefas">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       <span>Tarefas</span>
@@ -353,6 +581,10 @@
     <button class="tab" data-tab="estudos">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
       <span>Estudos</span>
+    </button>
+    <button class="tab" data-tab="economias">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a1 1 0 00-1-1h-2.5l-1-1.5h-3L10.5 5H8a5 5 0 00-5 5v1l-2 1.5V15h2v3a1 1 0 001 1h2v-2h5v2h2v-4h1a2 2 0 002-2v-1a3 3 0 00-2-2.83V9z"/><circle cx="16.5" cy="9.5" r=".6" fill="currentColor" stroke="none"/></svg>
+      <span>Economias</span>
     </button>
   </nav>
 
@@ -385,6 +617,19 @@
         <div class="stat"><div class="stat-num" id="d-pagas-count">0</div><div class="stat-label">pagas</div></div>
         <div class="stat"><div class="stat-num" id="d-total">R$ 0,00</div><div class="stat-label">total devendo</div></div>
       </div>
+
+      <div class="saldo-card">
+        <div class="saldo-info">
+          <div class="saldo-label">💰 Saldo guardado</div>
+          <div class="saldo-valor" id="saldo-display">R$ 0,00</div>
+          <div class="saldo-diff" id="saldo-diff"></div>
+        </div>
+        <div class="saldo-edit">
+          <input type="text" id="saldo-input" placeholder="R$ 0,00" inputmode="decimal">
+          <button id="saldo-save">Salvar</button>
+        </div>
+      </div>
+
       <div class="addbar">
         <input type="text" id="d-input" placeholder="ex: empréstimo do João" maxlength="160">
         <input type="text" id="d-valor" class="valor" placeholder="R$ 0,00" inputmode="decimal">
@@ -423,6 +668,29 @@
       <div class="list" id="e-list"></div>
       <p class="empty" id="e-empty">Nada por aqui ainda. Adicione o que você quer estudar.</p>
     </section>
+
+    <!-- ECONOMIAS -->
+    <section class="panel" data-panel="economias">
+      <div class="stats">
+        <div class="stat"><div class="stat-num" id="ec-guardado-total">R$ 0,00</div><div class="stat-label">guardado no total</div></div>
+        <div class="stat"><div class="stat-num" id="ec-metas-count">0</div><div class="stat-label">metas</div></div>
+        <div class="stat"><div class="stat-num" id="ec-falta-total">R$ 0,00</div><div class="stat-label">falta pras metas</div></div>
+      </div>
+      <div class="addbar">
+        <input type="text" id="ec-input" placeholder="ex: viagem, celular novo, reserva" maxlength="160">
+        <input type="text" id="ec-meta" class="valor" placeholder="meta R$" inputmode="decimal">
+        <button id="ec-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Adicionar
+        </button>
+      </div>
+      <div class="filters">
+        <button class="filter-pill active" data-tab="economias" data-filter="andamento">Em andamento</button>
+        <button class="filter-pill" data-tab="economias" data-filter="concluidas">Batidas</button>
+      </div>
+      <div class="list" id="ec-list"></div>
+      <p class="empty" id="ec-empty">Nenhuma meta de economia ainda. Crie a primeira acima 🐷</p>
+    </section>
   </main>
 
   <div class="footer-status">
@@ -453,15 +721,33 @@ const firebaseConfig = {
   appId: "1:776142922780:web:8e33c0902526ebc0486bd9"
 };
 
-const FIREBASE_READY = firebaseConfig.apiKey !== "SUA_API_KEY_AQUI";
+const FIREBASE_CONFIGURED = firebaseConfig.apiKey !== "SUA_API_KEY_AQUI";
+
+function carregarFirebaseComTimeout(){
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('tempo esgotado ao carregar Firebase')), 4000));
+  const carregar = (async () => {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app = initializeApp(firebaseConfig);
+    return { dbInstancia: fsMod.getFirestore(app), fsModulo: fsMod };
+  })();
+  return Promise.race([carregar, timeout]);
+}
 
 let db, fs;
-if (FIREBASE_READY) {
-  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-  fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-  const app = initializeApp(firebaseConfig);
-  db = fs.getFirestore(app);
-} else {
+let FIREBASE_READY = false;
+if (FIREBASE_CONFIGURED) {
+  try {
+    const resultado = await carregarFirebaseComTimeout();
+    db = resultado.dbInstancia;
+    fs = resultado.fsModulo;
+    FIREBASE_READY = true;
+  } catch (err) {
+    console.error('Não foi possível carregar o Firebase, usando armazenamento local:', err);
+    FIREBASE_READY = false;
+  }
+}
+if (!FIREBASE_READY) {
   document.getElementById('banner').classList.add('show');
 }
 
@@ -469,10 +755,12 @@ if (FIREBASE_READY) {
 const state = {
   tarefas: [],
   dividas: [],
-  estudos: []
+  estudos: [],
+  economias: [],
+  saldo: 0
 };
-const filtros = { tarefas: 'pendentes', dividas: 'pendentes', estudos: 'pendente' };
-const listenersReady = { tarefas: false, dividas: false, estudos: false };
+const filtros = { tarefas: 'pendentes', dividas: 'pendentes', estudos: 'pendente', economias: 'andamento' };
+const listenersReady = { tarefas: false, dividas: false, estudos: false, economias: false, saldo: false };
 
 // ---------- utilidades ----------
 function formatarData(ts){
@@ -554,6 +842,47 @@ async function removerItem(colecao, id){
   }
 }
 
+function iniciarSaldo(){
+  if (FIREBASE_READY){
+    const ref = fs.doc(db, 'config', 'saldo');
+    fs.onSnapshot(ref, (snap) => {
+      state.saldo = snap.exists() ? (snap.data().valor || 0) : 0;
+      listenersReady.saldo = true;
+      atualizarStatus();
+      renderSaldo();
+    }, (err) => console.error(err));
+  } else {
+    state.saldo = parseFloat(localStorage.getItem('painel:saldo')) || 0;
+    listenersReady.saldo = true;
+    atualizarStatus();
+    renderSaldo();
+  }
+}
+
+async function salvarSaldo(valor){
+  if (FIREBASE_READY){
+    await fs.setDoc(fs.doc(db, 'config', 'saldo'), { valor });
+  } else {
+    localStorage.setItem('painel:saldo', valor);
+    state.saldo = valor;
+    renderSaldo();
+  }
+}
+
+function renderSaldo(){
+  document.getElementById('saldo-display').textContent = formatarMoeda(state.saldo);
+  const totalDevendo = state.dividas.filter(i => !i.paga).reduce((s,i) => s + (i.valor||0), 0);
+  const diffEl = document.getElementById('saldo-diff');
+  if (totalDevendo > 0){
+    const diff = state.saldo - totalDevendo;
+    diffEl.textContent = (diff >= 0 ? 'sobra ' : 'falta ') + formatarMoeda(Math.abs(diff)) + ' pra quitar tudo';
+    diffEl.className = 'saldo-diff ' + (diff >= 0 ? 'pos' : 'neg');
+  } else {
+    diffEl.textContent = '';
+    diffEl.className = 'saldo-diff';
+  }
+}
+
 function atualizarStatus(){
   const todasProntas = Object.values(listenersReady).every(Boolean);
   const dot = document.getElementById('status-dot');
@@ -577,14 +906,15 @@ function renderizar(colecao){
   if (colecao === 'tarefas') renderTarefas();
   if (colecao === 'dividas') renderDividas();
   if (colecao === 'estudos') renderEstudos();
+  if (colecao === 'economias') renderEconomias();
 }
 
 function renderTarefas(){
   const itens = state.tarefas;
   const pendentes = itens.filter(i => !i.concluida);
   const concluidas = itens.filter(i => i.concluida);
-  document.getElementById('t-pendentes-count').textContent = pendentes.length;
-  document.getElementById('t-concluidas-count').textContent = concluidas.length;
+  setStatNum('t-pendentes-count', pendentes.length);
+  setStatNum('t-concluidas-count', concluidas.length);
 
   const lista = filtros.tarefas === 'pendentes' ? pendentes : concluidas;
   const el = document.getElementById('t-list');
@@ -609,8 +939,8 @@ function renderDividas(){
   const itens = state.dividas;
   const pendentes = itens.filter(i => !i.paga);
   const pagas = itens.filter(i => i.paga);
-  document.getElementById('d-pendentes-count').textContent = pendentes.length;
-  document.getElementById('d-pagas-count').textContent = pagas.length;
+  setStatNum('d-pendentes-count', pendentes.length);
+  setStatNum('d-pagas-count', pagas.length);
   document.getElementById('d-total').textContent = formatarMoeda(pendentes.reduce((s,i) => s + (i.valor||0), 0));
 
   const lista = filtros.dividas === 'pendentes' ? pendentes : pagas;
@@ -631,6 +961,7 @@ function renderDividas(){
     el.appendChild(card);
   });
   document.getElementById('d-empty').classList.toggle('show', lista.length === 0);
+  renderSaldo();
 }
 
 const ESTUDO_LABEL = { pendente: 'A estudar', estudando: 'Estudando', concluido: 'Concluído' };
@@ -640,9 +971,9 @@ function renderEstudos(){
   const itens = state.estudos;
   const porStatus = { pendente: [], estudando: [], concluido: [] };
   itens.forEach(i => { (porStatus[i.status] || porStatus.pendente).push(i); });
-  document.getElementById('e-pendente-count').textContent = porStatus.pendente.length;
-  document.getElementById('e-estudando-count').textContent = porStatus.estudando.length;
-  document.getElementById('e-concluido-count').textContent = porStatus.concluido.length;
+  setStatNum('e-pendente-count', porStatus.pendente.length);
+  setStatNum('e-estudando-count', porStatus.estudando.length);
+  setStatNum('e-concluido-count', porStatus.concluido.length);
 
   const lista = porStatus[filtros.estudos] || [];
   const el = document.getElementById('e-list');
@@ -663,21 +994,104 @@ function renderEstudos(){
   document.getElementById('e-empty').classList.toggle('show', lista.length === 0);
 }
 
+function renderEconomias(){
+  const itens = state.economias;
+  const emAndamento = itens.filter(i => (i.guardado||0) < (i.meta||0));
+  const concluidas = itens.filter(i => (i.meta||0) > 0 && (i.guardado||0) >= (i.meta||0));
+
+  const totalGuardado = itens.reduce((s,i) => s + (i.guardado||0), 0);
+  const totalMeta = itens.reduce((s,i) => s + (i.meta||0), 0);
+  const falta = Math.max(0, totalMeta - totalGuardado);
+
+  document.getElementById('ec-guardado-total').textContent = formatarMoeda(totalGuardado);
+  setStatNum('ec-metas-count', itens.length);
+  document.getElementById('ec-falta-total').textContent = formatarMoeda(falta);
+
+  const lista = filtros.economias === 'andamento' ? emAndamento : concluidas;
+  const el = document.getElementById('ec-list');
+  el.innerHTML = '';
+  lista.forEach(item => {
+    const meta = item.meta || 0;
+    const guardado = item.guardado || 0;
+    const pct = meta > 0 ? Math.min(100, Math.round((guardado / meta) * 100)) : 0;
+    const completa = meta > 0 && guardado >= meta;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-body">
+        <div class="card-title">${escapeHtml(item.texto)}${completa ? ' 🎉' : ''}</div>
+        <div class="progress-track"><div class="progress-fill ${completa ? 'completa' : ''}" style="width:${pct}%"></div></div>
+        <div class="card-meta">${formatarMoeda(guardado)} de ${formatarMoeda(meta)} · ${pct}%</div>
+      </div>
+      <div class="economia-add">
+        <input type="text" class="economia-valor-input" placeholder="+ valor" inputmode="decimal" data-id="${item.id}">
+        <button class="economia-add-btn" data-action="depositar" data-id="${item.id}">+</button>
+      </div>
+      <button class="del" data-action="del" data-id="${item.id}">${TRASH_SVG}</button>
+    `;
+    el.appendChild(card);
+  });
+  document.getElementById('ec-empty').classList.toggle('show', lista.length === 0);
+}
+
 function escapeHtml(str){
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
 }
 
+function setStatNum(id, val){
+  const el = document.getElementById(id);
+  const novo = String(val);
+  if (el.textContent !== novo){
+    el.textContent = novo;
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+  }
+}
+
+function explodirConfete(origem){
+  if (!origem || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cores = ['#6C5CE7', '#FF9F1C', '#00B87C', '#2F86EB', '#FF5D8F'];
+  const rect = origem.getBoundingClientRect();
+  for (let i = 0; i < 12; i++){
+    const p = document.createElement('div');
+    p.className = 'confete';
+    p.style.left = (rect.left + rect.width / 2) + 'px';
+    p.style.top = (rect.top + rect.height / 2) + 'px';
+    p.style.background = cores[i % cores.length];
+    const angulo = Math.random() * Math.PI * 2;
+    const dist = 36 + Math.random() * 44;
+    p.style.setProperty('--dx', Math.cos(angulo) * dist + 'px');
+    p.style.setProperty('--dy', Math.sin(angulo) * dist + 'px');
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 700);
+  }
+}
+
 // ---------- eventos: tabs ----------
+const tabIndicator = document.getElementById('tabIndicator');
+function moverIndicador(btn){
+  if (!btn) return;
+  const contRect = btn.parentElement.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+  tabIndicator.style.width = btnRect.width + 'px';
+  tabIndicator.style.transform = `translateX(${btnRect.left - contRect.left - 4}px)`;
+  tabIndicator.className = 'tab-indicator ind-' + btn.dataset.tab;
+}
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.querySelector(`.panel[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+    moverIndicador(btn);
   });
 });
+window.addEventListener('resize', () => moverIndicador(document.querySelector('.tab.active')));
+window.addEventListener('load', () => moverIndicador(document.querySelector('.tab.active')));
+moverIndicador(document.querySelector('.tab.active'));
 
 // ---------- eventos: filtros ----------
 document.querySelectorAll('.filter-pill').forEach(btn => {
@@ -714,6 +1128,15 @@ document.getElementById('d-add').addEventListener('click', () => {
 document.getElementById('d-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('d-add').click(); });
 document.getElementById('d-valor').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('d-add').click(); });
 
+document.getElementById('saldo-save').addEventListener('click', () => {
+  const input = document.getElementById('saldo-input');
+  const valor = parseMoeda(input.value || '0');
+  salvarSaldo(valor);
+  input.value = '';
+  input.blur();
+});
+document.getElementById('saldo-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('saldo-save').click(); });
+
 document.getElementById('e-add').addEventListener('click', () => {
   const input = document.getElementById('e-input');
   const texto = input.value.trim();
@@ -724,33 +1147,80 @@ document.getElementById('e-add').addEventListener('click', () => {
 });
 document.getElementById('e-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('e-add').click(); });
 
+document.getElementById('ec-add').addEventListener('click', () => {
+  const input = document.getElementById('ec-input');
+  const metaInput = document.getElementById('ec-meta');
+  const texto = input.value.trim();
+  if (!texto) return;
+  const meta = parseMoeda(metaInput.value || '0');
+  adicionarItem('economias', { texto, meta, guardado: 0 });
+  input.value = ''; metaInput.value = '';
+  input.focus();
+});
+document.getElementById('ec-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('ec-add').click(); });
+document.getElementById('ec-meta').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('ec-add').click(); });
+
 // ---------- eventos: cards (delegação) ----------
 document.getElementById('t-list').addEventListener('click', e => {
   const btn = e.target.closest('button'); if (!btn) return;
   const id = btn.dataset.id;
   const item = state.tarefas.find(i => i.id === id);
-  if (btn.dataset.action === 'toggle') atualizarItem('tarefas', id, { concluida: !item.concluida });
+  if (btn.dataset.action === 'toggle'){
+    if (!item.concluida) explodirConfete(btn);
+    atualizarItem('tarefas', id, { concluida: !item.concluida });
+  }
   if (btn.dataset.action === 'del') removerItem('tarefas', id);
 });
 document.getElementById('d-list').addEventListener('click', e => {
   const btn = e.target.closest('button'); if (!btn) return;
   const id = btn.dataset.id;
   const item = state.dividas.find(i => i.id === id);
-  if (btn.dataset.action === 'toggle') atualizarItem('dividas', id, { paga: !item.paga });
+  if (btn.dataset.action === 'toggle'){
+    if (!item.paga) explodirConfete(btn);
+    atualizarItem('dividas', id, { paga: !item.paga });
+  }
   if (btn.dataset.action === 'del') removerItem('dividas', id);
 });
 document.getElementById('e-list').addEventListener('click', e => {
   const btn = e.target.closest('button'); if (!btn) return;
   const id = btn.dataset.id;
   const item = state.estudos.find(i => i.id === id);
-  if (btn.dataset.action === 'ciclo') atualizarItem('estudos', id, { status: ESTUDO_PROXIMO[item.status] });
+  if (btn.dataset.action === 'ciclo'){
+    const proximo = ESTUDO_PROXIMO[item.status];
+    if (proximo === 'concluido') explodirConfete(btn);
+    atualizarItem('estudos', id, { status: proximo });
+  }
   if (btn.dataset.action === 'del') removerItem('estudos', id);
+});
+document.getElementById('ec-list').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  const id = btn.dataset.id;
+  const item = state.economias.find(i => i.id === id);
+  if (btn.dataset.action === 'depositar'){
+    const card = btn.closest('.card');
+    const valorInput = card.querySelector('.economia-valor-input');
+    const valor = parseMoeda(valorInput.value || '0');
+    if (valor <= 0) return;
+    const novoGuardado = (item.guardado || 0) + valor;
+    explodirConfete(btn);
+    atualizarItem('economias', id, { guardado: novoGuardado });
+    valorInput.value = '';
+  }
+  if (btn.dataset.action === 'del') removerItem('economias', id);
+});
+document.getElementById('ec-list').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const input = e.target.closest('.economia-valor-input'); if (!input) return;
+  const btn = input.closest('.card').querySelector('.economia-add-btn');
+  if (btn) btn.click();
 });
 
 // ---------- start ----------
 iniciarColecao('tarefas');
 iniciarColecao('dividas');
 iniciarColecao('estudos');
+iniciarColecao('economias');
+iniciarSaldo();
 </script>
 </body>
 </html>
